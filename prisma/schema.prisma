@@ -1,0 +1,1480 @@
+// Videowalla Sales Command Center — data model.
+//
+// Design rules encoded here:
+//  * Every estimated value (revenue, employees, contact details) carries a source,
+//    a confidence level and a checked-at date. Estimates are never stored as facts.
+//  * Activity history, stage history and contact attempts are append-only. The
+//    application layer never exposes update/delete on them to a sales rep.
+//  * Deduplication is enforced by the database (unique keys on normalized name,
+//    website domain, source URL and external posting id) — not by hope.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  OWNER
+  SALES_REP
+  MANAGER
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+}
+
+enum ConfidenceLevel {
+  VERIFIED
+  HIGH
+  MEDIUM
+  LOW
+  UNKNOWN
+}
+
+enum VerificationStatus {
+  VERIFIED
+  HIGH_CONFIDENCE
+  MEDIUM_CONFIDENCE
+  LOW_CONFIDENCE
+  UNVERIFIED
+  INVALID
+}
+
+enum SourceKind {
+  GMAIL_MESSAGE
+  GOOGLE_ALERT
+  JOB_ALERT_EMAIL
+  INDEED_ALERT_EMAIL
+  LINKEDIN_ALERT_EMAIL
+  CAREER_PAGE
+  JOB_BOARD_API
+  PLACES_API
+  BUSINESS_DIRECTORY
+  COMPANY_WEBSITE
+  RSS_FEED
+  CSV_IMPORT
+  MANUAL_URL
+  MANUAL_ENTRY
+  EXISTING_CRM
+}
+
+enum SourceRecordStatus {
+  RECEIVED
+  PARSED
+  EXTRACTED
+  DUPLICATE
+  QUALIFIED
+  DISQUALIFIED
+  MANUAL_REVIEW
+  FAILED
+  IGNORED
+}
+
+enum OpportunityKind {
+  HIRING_INTENT
+  COLD_OUTBOUND
+  INBOUND
+  REFERRAL
+}
+
+enum OpportunityStatus {
+  NEW
+  PROCESSING
+  QUALIFIED
+  MANUAL_REVIEW
+  DISQUALIFIED
+  ARCHIVED
+}
+
+enum TicketPriority {
+  PRIORITY
+  HIGH
+  NORMAL
+  LOW
+}
+
+enum ScoreBand {
+  PRIORITY_LEAD
+  QUALIFIED_LEAD
+  REVIEW_REQUIRED
+  LOW_PRIORITY
+  DISQUALIFIED
+}
+
+enum StageCategory {
+  INTAKE
+  READY
+  CONTACTED
+  ENGAGED
+  MEETING
+  CLOSED_WON
+  CLOSED_LOST
+  SUPPRESSED
+}
+
+enum ContactChannel {
+  PHONE
+  EMAIL
+  SMS
+  LINKEDIN
+  INSTAGRAM
+  WEBSITE_FORM
+  IN_PERSON
+  OTHER
+}
+
+enum ContactVerification {
+  VERIFIED_BY_INTEGRATION
+  MANUALLY_REPORTED
+}
+
+enum FollowUpStatus {
+  SCHEDULED
+  DUE
+  OVERDUE
+  COMPLETED
+  CANCELLED
+  SUPERSEDED
+}
+
+enum FollowUpReasonKind {
+  NO_ANSWER_RETRY
+  LONG_TERM_RETRY
+  INTERESTED_PROMISED
+  MEETING_INVITE_UNCONFIRMED
+  REACTIVATION
+  ENRICHMENT_REQUIRED
+  MANUAL
+}
+
+enum ShiftStatus {
+  ACTIVE
+  PAUSED
+  ENDED
+  ABANDONED
+}
+
+enum ShiftEventKind {
+  STARTED
+  PAUSED
+  RESUMED
+  ENDED
+  AUTO_ENDED
+}
+
+enum ActivityKind {
+  SHIFT_STARTED
+  SHIFT_PAUSED
+  SHIFT_RESUMED
+  SHIFT_ENDED
+  LEAD_OPENED
+  LEAD_RESEARCHED
+  CONTACT_INFO_VIEWED
+  TICKET_MOVED
+  CONTACT_ATTEMPT_LOGGED
+  NOTE_ADDED
+  NOTE_EDITED
+  FOLLOW_UP_CREATED
+  FOLLOW_UP_COMPLETED
+  MEETING_INVITE_SENT
+  MEETING_BOOKED
+  STAGE_CHANGED
+  LEAD_ASSIGNED
+  SETTINGS_CHANGED
+}
+
+enum SprintStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  ACTIVE
+  CLOSED
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  DEAD
+  CANCELLED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SLACK
+}
+
+enum NotificationSeverity {
+  INFO
+  SUCCESS
+  WARNING
+  CRITICAL
+}
+
+enum ReportKind {
+  SHIFT
+  WEEKLY
+  MONTHLY
+  SUNDAY_SUMMARY
+}
+
+enum IntegrationKind {
+  GMAIL
+  GOOGLE_CALENDAR
+  GOOGLE_PLACES
+  AI_ANTHROPIC
+  AI_OPENAI
+  ENRICHMENT_HTTP
+  CALLING_TWILIO
+  CALLING_GOHIGHLEVEL
+  SMTP_EMAIL
+  SLACK
+}
+
+enum IntegrationStatus {
+  NOT_CONFIGURED
+  CONFIGURED_UNTESTED
+  CONNECTED
+  ERROR
+  DISABLED
+}
+
+enum MeetingStatus {
+  INVITE_DRAFTED
+  INVITE_SENT
+  CONFIRMED
+  DECLINED
+  RESCHEDULED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+// ---------------------------------------------------------------------------
+// Users, auth, permissions
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  role         UserRole
+  status       UserStatus @default(INVITED)
+  passwordHash String?
+  timezone     String     @default("America/Toronto")
+  phone        String?
+  avatarColor  String     @default("#2563eb")
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deactivatedAt DateTime?
+
+  sessions            Session[]
+  invitationsSent     Invitation[]      @relation("InvitationInviter")
+  invitationAccepted  Invitation?       @relation("InvitationAcceptedBy")
+  workSchedules       WorkSchedule[]
+  shifts              Shift[]
+  activityEvents      ActivityEvent[]
+  sprints             WeeklySprint[]
+  assignedTickets     LeadTicket[]      @relation("TicketAssignee")
+  contactAttempts     ContactAttempt[]
+  notes               Note[]
+  followUpsOwned      FollowUp[]        @relation("FollowUpOwner")
+  followUpsCompleted  FollowUp[]        @relation("FollowUpCompletedBy")
+  stageHistory        StageHistory[]
+  meetings            Meeting[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  compensations       CompensationSetting[]
+  weeklyScorecards    WeeklyScorecard[]
+  reports             Report[]
+  notificationPrefs   NotificationPreference[]
+
+  @@index([role, status])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Invitation {
+  id           String    @id @default(cuid())
+  email        String
+  role         UserRole
+  name         String
+  tokenHash    String    @unique
+  invitedById  String
+  invitedBy    User      @relation("InvitationInviter", fields: [invitedById], references: [id])
+  acceptedById String?   @unique
+  acceptedBy   User?     @relation("InvitationAcceptedBy", fields: [acceptedById], references: [id])
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([email])
+}
+
+// ---------------------------------------------------------------------------
+// Configuration — everything the owner can change without a redeploy
+// ---------------------------------------------------------------------------
+
+/// Generic namespaced key/value settings store. Values are JSON and validated
+/// against zod schemas in src/lib/settings/definitions.ts before being written.
+model Setting {
+  key         String   @id
+  value       Json
+  description String?
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
+
+model Industry {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  priority  Int      @default(100)
+  isActive  Boolean  @default(true)
+  /// Free-form matching terms used by the classifier and Places category search.
+  keywords  String[] @default([])
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companies      Company[]
+  territoryLinks TerritoryIndustry[]
+
+  @@index([isActive, priority])
+}
+
+model Location {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  slug         String   @unique
+  kind         String   @default("CITY") // CITY | REGION | PROVINCE | COUNTRY | POSTAL
+  country      String   @default("CA")
+  province     String?
+  latitude     Float?
+  longitude    Float?
+  radiusKm     Int      @default(25)
+  priority     Int      @default(100)
+  isActive     Boolean  @default(true)
+  isExcluded   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  companies      Company[]
+  territoryLinks TerritoryLocation[]
+
+  @@index([isActive, priority])
+}
+
+model Territory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  /// Position in the weekly rotation. Lower runs first.
+  rotationOrder Int    @default(100)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  locations  TerritoryLocation[]
+  industries TerritoryIndustry[]
+  tickets    LeadTicket[]
+  sprints    SprintTerritory[]
+}
+
+model TerritoryLocation {
+  territoryId String
+  locationId  String
+  territory   Territory @relation(fields: [territoryId], references: [id], onDelete: Cascade)
+  location    Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@id([territoryId, locationId])
+}
+
+model TerritoryIndustry {
+  territoryId String
+  industryId  String
+  territory   Territory @relation(fields: [territoryId], references: [id], onDelete: Cascade)
+  industry    Industry  @relation(fields: [industryId], references: [id], onDelete: Cascade)
+
+  @@id([territoryId, industryId])
+}
+
+model KeywordGroup {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  isActive  Boolean   @default(true)
+  priority  Int       @default(100)
+  createdAt DateTime  @default(now())
+  keywords  Keyword[]
+}
+
+model Keyword {
+  id            String        @id @default(cuid())
+  term          String
+  normalizedTerm String
+  groupId       String?
+  group         KeywordGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  priority      Int           @default(100)
+  isActive      Boolean       @default(true)
+  /// Optional narrowing: only apply this keyword within these industries/locations.
+  industrySlugs String[]      @default([])
+  locationSlugs String[]      @default([])
+  /// Points contributed to the hiring-role component of the lead score.
+  scoreBoost    Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([normalizedTerm])
+  @@index([isActive, priority])
+}
+
+model PipelineStage {
+  id             String        @id @default(cuid())
+  key            String        @unique
+  name           String
+  category       StageCategory
+  position       Int
+  isActive       Boolean       @default(true)
+  isSystem       Boolean       @default(false)
+  color          String        @default("#64748b")
+  description    String?
+  /// Field names the UI must collect before a ticket may enter this stage.
+  requiredFields String[]      @default([])
+  /// Automation keys executed on entry (see src/lib/pipeline/stage-automation.ts).
+  automations    String[]      @default([])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  tickets      LeadTicket[]
+  historyFrom  StageHistory[] @relation("StageFrom")
+  historyTo    StageHistory[] @relation("StageTo")
+
+  @@index([isActive, position])
+}
+
+model ContactOutcomeType {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  label         String
+  position      Int
+  isActive      Boolean  @default(true)
+  /// Stage key a ticket should move to when this outcome is recorded.
+  targetStageKey String?
+  countsAsConversation Boolean @default(false)
+  countsAsContact      Boolean @default(true)
+  requiresNote         Boolean @default(false)
+  requiresFollowUp     Boolean @default(false)
+  createdAt     DateTime @default(now())
+
+  attempts ContactAttempt[]
+}
+
+model ScoringProfile {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  isActive    Boolean  @default(false)
+  description String?
+  /// Band thresholds, e.g. { "PRIORITY_LEAD": 80, "QUALIFIED_LEAD": 65, "REVIEW_REQUIRED": 50 }
+  thresholds  Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  factors ScoringFactor[]
+  scores  LeadScore[]
+}
+
+model ScoringFactor {
+  id          String         @id @default(cuid())
+  profileId   String
+  profile     ScoringProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  key         String
+  label       String
+  weight      Int
+  isActive    Boolean        @default(true)
+  position    Int            @default(100)
+  description String?
+
+  @@unique([profileId, key])
+}
+
+model FollowUpRule {
+  id           String             @id @default(cuid())
+  key          String             @unique
+  label        String
+  reasonKind   FollowUpReasonKind
+  /// Which attempt number this rule applies to (null = any).
+  attemptNumber Int?
+  delayDays    Int
+  delayBusinessDays Boolean       @default(false)
+  isActive     Boolean            @default(true)
+  position     Int                @default(100)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model CompensationSetting {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weeklyPayCents  Int
+  currency        String    @default("CAD")
+  /// Nullable: hourly rate is derived from weekly pay / weekly hours when absent.
+  hourlyRateCents Int?
+  weeklyHours     Float     @default(8)
+  payCadence      String    @default("BIWEEKLY") // WEEKLY | BIWEEKLY | MONTHLY
+  effectiveFrom   DateTime
+  effectiveTo     DateTime?
+  notes           String?
+  createdAt       DateTime  @default(now())
+
+  @@index([userId, effectiveFrom])
+}
+
+model WorkSchedule {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Total paid hours for the week this schedule covers.
+  weeklyHours Float    @default(8)
+  /// [{ weekday: 1, startTime: "09:00", hours: 4 }] — weekday 0=Sunday.
+  plannedShifts Json   @default("[]")
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  notes         String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, effectiveFrom])
+}
+
+// ---------------------------------------------------------------------------
+// Lead sources and raw ingested records
+// ---------------------------------------------------------------------------
+
+model LeadSource {
+  id           String     @id @default(cuid())
+  key          String     @unique
+  name         String
+  kind         SourceKind
+  isActive     Boolean    @default(true)
+  /// Connector-specific config (gmail label, feed url, places query, etc).
+  config       Json       @default("{}")
+  priority     Int        @default(100)
+  lastRunAt    DateTime?
+  lastSuccessAt DateTime?
+  lastError    String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  records SourceRecord[]
+
+  @@index([isActive, priority])
+}
+
+/// The immutable original artifact a lead came from. Never deleted — the spec
+/// requires every original lead source to be preserved.
+model SourceRecord {
+  id            String             @id @default(cuid())
+  sourceId      String?
+  source        LeadSource?        @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  kind          SourceKind
+  /// Stable per-source identity used for idempotent ingestion (gmail message id,
+  /// posting id, url hash...). Unique so re-processing an alert is a no-op.
+  externalId    String
+  status        SourceRecordStatus @default(RECEIVED)
+  subject       String?
+  sender        String?
+  receivedAt    DateTime?
+  sourceUrl     String?
+  /// Verbatim payload (raw email body, API response, CSV row).
+  rawPayload    Json
+  /// Structured output of the parser stage, before AI extraction.
+  parsedPayload Json?
+  errorMessage  String?
+  processedAt   DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  opportunities Opportunity[]
+  jobPostings   JobPosting[]
+
+  @@unique([kind, externalId])
+  @@index([status, createdAt])
+  @@index([sourceUrl])
+}
+
+// ---------------------------------------------------------------------------
+// Companies, contacts, opportunities
+// ---------------------------------------------------------------------------
+
+model Company {
+  id             String    @id @default(cuid())
+  name           String
+  /// Lowercased, punctuation- and suffix-stripped name used for dedup.
+  normalizedName String
+  websiteUrl     String?
+  /// Registrable domain, lowercased. The strongest dedup key we have.
+  websiteDomain  String?   @unique
+  description    String?
+  industryId     String?
+  industry       Industry? @relation(fields: [industryId], references: [id], onDelete: SetNull)
+  industryLabel  String?
+  locationId     String?
+  location       Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  addressLine    String?
+  city           String?
+  province       String?
+  postalCode     String?
+  country        String    @default("CA")
+  latitude       Float?
+  longitude      Float?
+  serviceArea    String?
+  phone          String?
+  normalizedPhone String?
+  email          String?
+  linkedinUrl    String?
+  instagramUrl   String?
+  facebookUrl    String?
+  logoUrl        String?
+  locationCount  Int?
+  yearsInBusiness Int?
+  reviewCount    Int?
+  reviewRating   Float?
+  isActiveBusiness Boolean @default(true)
+
+  // --- Estimated values. Always paired with source/confidence/checkedAt. ---
+  employeeCountMin        Int?
+  employeeCountMax        Int?
+  employeeCountSource     String?
+  employeeCountConfidence ConfidenceLevel @default(UNKNOWN)
+  employeeCountCheckedAt  DateTime?
+  employeeCountVerified   Boolean         @default(false)
+
+  revenueMinCents        BigInt?
+  revenueMaxCents        BigInt?
+  revenueSource          String?
+  revenueConfidence      ConfidenceLevel @default(UNKNOWN)
+  revenueCheckedAt       DateTime?
+  revenueVerified        Boolean         @default(false)
+
+  doNotContact       Boolean   @default(false)
+  doNotContactReason String?
+  doNotContactAt     DateTime?
+  doNotContactById   String?
+
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contacts      Contact[]
+  opportunities Opportunity[]
+  jobPostings   JobPosting[]
+  tickets       LeadTicket[]
+  enrichments   EnrichmentRecord[]
+  notes         Note[]
+  meetings      Meeting[]
+  attributions  RevenueAttribution[]
+
+  @@unique([normalizedName, city])
+  @@index([normalizedName])
+  @@index([normalizedPhone])
+  @@index([city, province])
+  @@index([doNotContact])
+}
+
+model Contact {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  fullName  String
+  firstName String?
+  lastName  String?
+  title     String?
+  /// OWNER | FOUNDER | PRESIDENT | CEO | MARKETING_DECISION_MAKER | MARKETING_MANAGER | OTHER
+  roleKind  String  @default("OTHER")
+  isPrimary Boolean @default(false)
+
+  phone            String?
+  normalizedPhone  String?
+  phoneSource      String?
+  phoneStatus      VerificationStatus @default(UNVERIFIED)
+  phoneCheckedAt   DateTime?
+
+  email          String?
+  emailSource    String?
+  emailStatus    VerificationStatus @default(UNVERIFIED)
+  emailCheckedAt DateTime?
+
+  linkedinUrl  String?
+  instagramUrl String?
+
+  /// Free-form provenance note, e.g. "company website /about page".
+  discoverySource String?
+  confidence      ConfidenceLevel @default(UNKNOWN)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  tickets  LeadTicket[]
+  attempts ContactAttempt[]
+  meetings Meeting[]
+
+  @@unique([companyId, email])
+  @@index([companyId, isPrimary])
+  @@index([normalizedPhone])
+}
+
+model JobPosting {
+  id             String        @id @default(cuid())
+  companyId      String
+  company        Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sourceRecordId String?
+  sourceRecord   SourceRecord? @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
+
+  title          String
+  normalizedTitle String
+  /// Provider-supplied posting id when available, else a hash of the source url.
+  externalPostingId String?
+  roleCategory   String?
+  employmentType String?
+  locationText   String?
+  salaryText     String?
+  postedAt       DateTime?
+  discoveredAt   DateTime  @default(now())
+  sourceUrl      String?
+  sourcePlatform String?
+  responsibilities String[] @default([])
+  requiredSkills   String[] @default([])
+  descriptionText  String?
+  matchedKeywords  String[] @default([])
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  opportunities Opportunity[]
+
+  @@unique([externalPostingId])
+  @@index([companyId, normalizedTitle])
+  @@index([postedAt])
+}
+
+model Opportunity {
+  id             String            @id @default(cuid())
+  companyId      String
+  company        Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  jobPostingId   String?
+  jobPosting     JobPosting?       @relation(fields: [jobPostingId], references: [id], onDelete: SetNull)
+  sourceRecordId String?
+  sourceRecord   SourceRecord?     @relation(fields: [sourceRecordId], references: [id], onDelete: SetNull)
+
+  kind   OpportunityKind
+  status OpportunityStatus @default(NEW)
+
+  /// Stable dedup key: company + kind + posting/role identity.
+  dedupeKey String @unique
+
+  headline            String
+  summary             String?
+  whatTheyAreLookingFor String?
+  marketingProblem    String?
+  whyContact          String?
+  recommendedService  String?
+  suggestedOpening    String?
+  suggestedEmail      String?
+  suggestedFollowUp   String?
+  likelyDecisionMaker String?
+  missingInformation  String[] @default([])
+
+  aiProvider   String?
+  aiModel      String?
+  aiConfidence Float?
+  aiRawOutput  Json?
+  aiProcessedAt DateTime?
+
+  discoveredAt DateTime @default(now())
+  postingAgeDays Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tickets LeadTicket[]
+  scores  LeadScore[]
+
+  @@index([status, discoveredAt])
+  @@index([companyId])
+}
+
+model EnrichmentRecord {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  provider  String
+  /// e.g. "contact.email", "company.revenue"
+  field     String
+  value     Json?
+  source    String?
+  sourceUrl String?
+  confidence ConfidenceLevel   @default(UNKNOWN)
+  status    VerificationStatus @default(UNVERIFIED)
+  succeeded Boolean            @default(true)
+  errorMessage String?
+  collectedAt DateTime @default(now())
+
+  @@index([companyId, field])
+}
+
+model LeadScore {
+  id            String         @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity    @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  profileId     String
+  profile       ScoringProfile @relation(fields: [profileId], references: [id])
+  ticketId      String?
+  ticket        LeadTicket?    @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  score      Int
+  band       ScoreBand
+  /// Overall data confidence 0..1 — how much of the score rests on verified data.
+  dataConfidence Float @default(0)
+  /// [{ key, label, weight, awarded, reason, confidence }]
+  breakdown  Json
+  explanation String?
+  isCurrent  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([opportunityId, isCurrent])
+}
+
+// ---------------------------------------------------------------------------
+// Lead tickets, pipeline, activity
+// ---------------------------------------------------------------------------
+
+model LeadTicket {
+  id            String       @id @default(cuid())
+  reference     String       @unique
+  companyId     String
+  company       Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  opportunityId String       @unique
+  opportunity   Opportunity  @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  primaryContactId String?
+  primaryContact   Contact?  @relation(fields: [primaryContactId], references: [id], onDelete: SetNull)
+
+  stageId String
+  stage   PipelineStage @relation(fields: [stageId], references: [id])
+
+  assigneeId String?
+  assignee   User?   @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  sprintId String?
+  sprint   WeeklySprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  territoryId String?
+  territory   Territory? @relation(fields: [territoryId], references: [id], onDelete: SetNull)
+
+  priority    TicketPriority @default(NORMAL)
+  score       Int            @default(0)
+  band        ScoreBand      @default(REVIEW_REQUIRED)
+  queuePosition Int          @default(0)
+
+  attemptCount     Int       @default(0)
+  lastAttemptAt    DateTime?
+  lastOutcomeKey   String?
+  connectedCount   Int       @default(0)
+  nextActionLabel  String?
+  nextFollowUpAt   DateTime?
+  interestLevel    String?
+  disqualifiedReason String?
+  notInterestedReason String?
+  reactivationAt   DateTime?
+
+  isCarryover Boolean  @default(false)
+  closedAt    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  stageHistory StageHistory[]
+  attempts     ContactAttempt[]
+  notes        Note[]
+  followUps    FollowUp[]
+  meetings     Meeting[]
+  activity     ActivityEvent[]
+  scores       LeadScore[]
+  attributions RevenueAttribution[]
+
+  @@index([assigneeId, sprintId])
+  @@index([stageId, queuePosition])
+  @@index([nextFollowUpAt])
+  @@index([score])
+}
+
+/// Append-only. No update or delete path is exposed anywhere in the app.
+model StageHistory {
+  id          String   @id @default(cuid())
+  ticketId    String
+  ticket      LeadTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fromStageId String?
+  fromStage   PipelineStage? @relation("StageFrom", fields: [fromStageId], references: [id])
+  toStageId   String
+  toStage     PipelineStage  @relation("StageTo", fields: [toStageId], references: [id])
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sprintId    String?
+  sprint      WeeklySprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  shiftId     String?
+  requiredNextAction String?
+  followUpId  String?
+  automated   Boolean  @default(false)
+  metadata    Json?
+  occurredAt  DateTime @default(now())
+
+  @@index([ticketId, occurredAt])
+}
+
+/// Append-only.
+model ContactAttempt {
+  id        String     @id @default(cuid())
+  ticketId  String
+  ticket    LeadTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  contactId String?
+  contact   Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  shiftId   String?
+  shift     Shift?     @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  sprintId  String?
+  sprint    WeeklySprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  channel      ContactChannel
+  outcomeId    String
+  outcome      ContactOutcomeType @relation(fields: [outcomeId], references: [id])
+  outcomeKey   String
+  attemptNumber Int
+  verification ContactVerification
+  answered     Boolean  @default(false)
+  isConversation Boolean @default(false)
+  durationSeconds Int?
+  providerEventId String?
+  providerName    String?
+  startedAt    DateTime @default(now())
+  endedAt      DateTime?
+  note         String?
+  followUpId   String?
+  createdAt    DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+  @@index([userId, createdAt])
+  @@index([sprintId])
+  @@unique([providerName, providerEventId])
+}
+
+model Note {
+  id        String     @id @default(cuid())
+  ticketId  String?
+  ticket    LeadTicket? @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  companyId String?
+  company   Company?   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  body      String
+  kind      String     @default("NOTE") // NOTE | CONVERSATION_SUMMARY | OWNER_COMMENT | SYSTEM
+  mentions  String[]   @default([])
+  isPinned  Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  revisions NoteRevision[]
+
+  @@index([ticketId, createdAt])
+}
+
+/// Every edit to a note leaves the previous body behind, permanently.
+model NoteRevision {
+  id         String   @id @default(cuid())
+  noteId     String
+  note       Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  previousBody String
+  editedById String
+  editedAt   DateTime @default(now())
+
+  @@index([noteId, editedAt])
+}
+
+model FollowUp {
+  id        String     @id @default(cuid())
+  ticketId  String
+  ticket    LeadTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ownerId   String?
+  owner     User?      @relation("FollowUpOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  sprintId  String?
+  sprint    WeeklySprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  dueAt       DateTime
+  status      FollowUpStatus     @default(SCHEDULED)
+  reasonKind  FollowUpReasonKind
+  reason      String
+  channel     ContactChannel     @default(PHONE)
+  ruleKey     String?
+  attemptNumber Int?
+  note        String?
+  automated   Boolean            @default(true)
+
+  completedAt   DateTime?
+  completedById String?
+  completedBy   User?     @relation("FollowUpCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  cancelledAt   DateTime?
+  cancelReason  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, dueAt])
+  @@index([ticketId, status])
+  @@index([ownerId, status, dueAt])
+}
+
+model Meeting {
+  id         String     @id @default(cuid())
+  ticketId   String
+  ticket     LeadTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  companyId  String
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contactId  String?
+  contact    Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  createdById String
+  createdBy  User       @relation(fields: [createdById], references: [id])
+  sprintId   String?
+  sprint     WeeklySprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  provider       String   @default("GOOGLE_CALENDAR")
+  externalEventId String?
+  calendarId     String?
+  htmlLink       String?
+  meetingType    String   @default("DISCOVERY_CALL")
+  title          String
+  description    String?
+  startsAt       DateTime
+  endsAt         DateTime
+  timezone       String   @default("America/Toronto")
+  attendees      Json     @default("[]")
+  status         MeetingStatus @default(INVITE_DRAFTED)
+  inviteSentAt   DateTime?
+  confirmedAt    DateTime?
+  lastSyncedAt   DateTime?
+  syncError      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([provider, externalEventId])
+  @@index([ticketId])
+  @@index([startsAt])
+}
+
+// ---------------------------------------------------------------------------
+// Shifts, activity, sprints, scoring
+// ---------------------------------------------------------------------------
+
+model Shift {
+  id       String      @id @default(cuid())
+  userId   String
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sprintId String?
+  sprint   WeeklySprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  status      ShiftStatus @default(ACTIVE)
+  startedAt   DateTime    @default(now())
+  endedAt     DateTime?
+  /// Seconds accumulated while not paused. Recomputed on every transition.
+  activeSeconds  Int      @default(0)
+  pausedSeconds  Int      @default(0)
+  lastResumedAt  DateTime?
+  plannedStartAt DateTime?
+  plannedHours   Float?
+  startedLateMinutes Int?
+  lastActivityAt DateTime  @default(now())
+  endNote        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  events   ShiftEvent[]
+  attempts ContactAttempt[]
+  activity ActivityEvent[]
+  reports  Report[]
+
+  @@index([userId, startedAt])
+  @@index([status])
+}
+
+model ShiftEvent {
+  id        String         @id @default(cuid())
+  shiftId   String
+  shift     Shift          @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  kind      ShiftEventKind
+  reason    String?
+  occurredAt DateTime      @default(now())
+
+  @@index([shiftId, occurredAt])
+}
+
+/// Append-only meaningful-activity log. This is the accountability backbone —
+/// it records work done inside the app, not the person's computer usage.
+model ActivityEvent {
+  id       String       @id @default(cuid())
+  userId   String
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind     ActivityKind
+  ticketId String?
+  ticket   LeadTicket?  @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  shiftId  String?
+  shift    Shift?       @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  sprintId String?
+  sprint   WeeklySprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  summary  String
+  metadata Json?
+  occurredAt DateTime   @default(now())
+
+  @@index([userId, occurredAt])
+  @@index([sprintId, kind])
+  @@index([ticketId, occurredAt])
+  @@index([occurredAt])
+}
+
+model WeeklySprint {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  weekStart DateTime
+  weekEnd   DateTime
+  /// ISO week label, e.g. "2026-W31".
+  label     String
+  status    SprintStatus @default(DRAFT)
+
+  availableHours Float @default(8)
+  plannedShifts  Json  @default("[]")
+
+  priorityLocationIds String[] @default([])
+  priorityIndustryIds String[] @default([])
+  instructions        String?
+  planningNotes       String?
+  /// Human-readable reasons the engine chose these targets.
+  targetRationale     Json?
+  leadShortfall       Int      @default(0)
+
+  approvedAt   DateTime?
+  approvedById String?
+  closedAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  targets      SprintTarget[]
+  tickets      LeadTicket[]
+  followUps    FollowUp[]
+  shifts       Shift[]
+  attempts     ContactAttempt[]
+  activity     ActivityEvent[]
+  stageHistory StageHistory[]
+  meetings     Meeting[]
+  scorecard    WeeklyScorecard?
+  territories  SprintTerritory[]
+  reports      Report[]
+
+  @@unique([userId, weekStart])
+  @@index([status, weekStart])
+}
+
+model SprintTerritory {
+  sprintId    String
+  territoryId String
+  sprint      WeeklySprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  territory   Territory    @relation(fields: [territoryId], references: [id], onDelete: Cascade)
+
+  @@id([sprintId, territoryId])
+}
+
+model SprintTarget {
+  id       String       @id @default(cuid())
+  sprintId String
+  sprint   WeeklySprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  /// TOTAL_CONTACTS | NEW_CONTACTS | FOLLOW_UPS | CONVERSATIONS | INTERESTED | MEETINGS
+  key      String
+  label    String
+  target   Int
+  /// Engine's proposal, kept even after the owner overrides `target`.
+  suggestedTarget Int
+  overriddenById  String?
+  overriddenAt    DateTime?
+  rationale       String?
+  position        Int      @default(100)
+
+  @@unique([sprintId, key])
+}
+
+model WeeklyScorecard {
+  id       String       @id @default(cuid())
+  sprintId String       @unique
+  sprint   WeeklySprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  scheduledHours Float @default(0)
+  completedHours Float @default(0)
+  activeHours    Float @default(0)
+  inactiveHours  Float @default(0)
+
+  contactsCompleted   Int @default(0)
+  verifiedContacts    Int @default(0)
+  manualContacts      Int @default(0)
+  newContacts         Int @default(0)
+  followUpsCompleted  Int @default(0)
+  followUpsOutstanding Int @default(0)
+  conversations       Int @default(0)
+  answeredCount       Int @default(0)
+  interestedLeads     Int @default(0)
+  meetingInvitesSent  Int @default(0)
+  meetingsBooked      Int @default(0)
+  opportunitiesCreated Int @default(0)
+  notesWritten        Int @default(0)
+  notesRequired       Int @default(0)
+  unfinishedTasks     Int @default(0)
+
+  totalScore     Int   @default(0)
+  /// [{ key, label, weight, awarded, detail }]
+  scoreBreakdown Json  @default("[]")
+  targetCompletion Float @default(0)
+
+  salespersonCostCents Int  @default(0)
+  costPerContactCents  Int?
+  costPerConversationCents Int?
+  costPerMeetingCents  Int?
+  attributedRevenueCents BigInt?
+
+  isFrozen  Boolean  @default(false)
+  frozenAt  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model MonthlyTarget {
+  id        String   @id @default(cuid())
+  userId    String
+  year      Int
+  month     Int
+  key       String
+  label     String
+  target    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, year, month, key])
+}
+
+model RevenueAttribution {
+  id        String     @id @default(cuid())
+  ticketId  String
+  ticket    LeadTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  companyId String
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId    String?
+  /// Only recorded when a real deal is linked to a real ticket.
+  amountCents BigInt
+  currency  String   @default("CAD")
+  stage     String   @default("WON")
+  closedAt  DateTime
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+  @@index([closedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications, reports, integrations, jobs, audit
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String
+  title     String
+  body      String
+  severity  NotificationSeverity @default(INFO)
+  channel   NotificationChannel  @default(IN_APP)
+  linkUrl   String?
+  metadata  Json?
+  readAt    DateTime?
+  deliveredAt DateTime?
+  deliveryError String?
+  /// Prevents duplicate alerts for the same underlying condition.
+  dedupeKey String?
+  createdAt DateTime @default(now())
+
+  @@unique([dedupeKey])
+  @@index([userId, readAt])
+  @@index([createdAt])
+}
+
+model NotificationPreference {
+  id      String  @id @default(cuid())
+  userId  String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key     String
+  inApp   Boolean @default(true)
+  email   Boolean @default(false)
+  slack   Boolean @default(false)
+
+  @@unique([userId, key])
+}
+
+model Report {
+  id       String     @id @default(cuid())
+  kind     ReportKind
+  userId   String?
+  user     User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sprintId String?
+  sprint   WeeklySprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  shiftId  String?
+  shift    Shift?     @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  periodStart DateTime
+  periodEnd   DateTime
+  title    String
+  payload  Json
+  createdAt DateTime @default(now())
+
+  @@unique([kind, userId, periodStart])
+  @@index([kind, periodStart])
+}
+
+model IntegrationConfig {
+  id        String            @id @default(cuid())
+  kind      IntegrationKind   @unique
+  status    IntegrationStatus @default(NOT_CONFIGURED)
+  isEnabled Boolean           @default(false)
+  /// Non-secret settings (label names, calendar id, default query...).
+  config    Json              @default("{}")
+  /// AES-256-GCM ciphertext of the secret bundle. Never leaves the server.
+  secretsCiphertext String?
+  lastTestedAt DateTime?
+  lastTestOk   Boolean?
+  lastError    String?
+  lastSyncAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  failures IntegrationFailure[]
+}
+
+model IntegrationFailure {
+  id            String   @id @default(cuid())
+  integrationId String?
+  integration   IntegrationConfig? @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  kind          String
+  message       String
+  detail        Json?
+  occurredAt    DateTime @default(now())
+  acknowledgedAt DateTime?
+
+  @@index([occurredAt])
+}
+
+model Job {
+  id           String    @id @default(cuid())
+  name         String
+  payload      Json      @default("{}")
+  status       JobStatus @default(PENDING)
+  priority     Int       @default(100)
+  runAt        DateTime  @default(now())
+  attempts     Int       @default(0)
+  maxAttempts  Int       @default(5)
+  /// Uniqueness guard so the same unit of work is never queued twice.
+  idempotencyKey String? @unique
+  lockedAt     DateTime?
+  lockedBy     String?
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  lastError    String?
+  result       Json?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  failures JobFailure[]
+
+  @@index([status, runAt, priority])
+  @@index([name, status])
+}
+
+model JobFailure {
+  id        String   @id @default(cuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  attempt   Int
+  message   String
+  stack     String?
+  occurredAt DateTime @default(now())
+
+  @@index([jobId])
+}
+
+model ScheduledJob {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  jobName     String
+  cron        String
+  timezone    String   @default("America/Toronto")
+  payload     Json     @default("{}")
+  isActive    Boolean  @default(true)
+  lastRunAt   DateTime?
+  nextRunAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  before    Json?
+  after     Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}

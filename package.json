@@ -1,0 +1,46 @@
+{
+  "name": "videowalla-sales-command-center",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Private internal sales operating system for Videowalla: automated lead discovery, AI qualification, weekly sprint planning, CRM pipeline and salesperson accountability.",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "worker": "tsx src/worker/main.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "seed": "tsx prisma/seed.ts",
+    "seed:dev-fixtures": "tsx prisma/dev-fixtures.ts",
+    "bootstrap:owner": "tsx scripts/bootstrap-owner.ts",
+    "test": "tsx --test src/**/*.test.ts",
+    "test:acceptance": "tsx scripts/acceptance-test.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "cron-parser": "4.9.0",
+    "dotenv": "^17.4.2",
+    "next": "^16.2.12",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "server-only": "^0.0.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.20.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "prisma": "^6.19.3",
+    "tailwindcss": "^4.3.3",
+    "tsx": "4.19.2",
+    "typescript": "^5.9.3"
+  }
+}
