@@ -5,7 +5,7 @@ import { stableKey } from '../normalize';
 import { enqueue } from '../jobs/queue';
 import { fetchMessages } from '../integrations/gmail';
 import { isIntegrationReady } from '../integrations/store';
-import { searchPlaces } from '../integrations/places';
+import { isPlacesConfigured, searchPlaces } from '../integrations/places';
 import { parseEmail, type ParsedCandidate, type RawEmail } from './email-parser';
 
 const log = createLogger('ingest');
@@ -166,6 +166,20 @@ export async function ingestPlacesSource(
   options: { maxResults?: number; locationIds?: string[]; industryIds?: string[] } = {},
 ): Promise<IngestResult> {
   const result: IngestResult = { sourceKey: source.key, created: 0, duplicates: 0, skipped: 0 };
+
+  // Check once, up front. Without this the location × industry loop below would
+  // call the API helper dozens of times only to be told each time that no key
+  // is configured.
+  if (!(await isPlacesConfigured())) {
+    result.skipped = 1;
+    result.error =
+      'Google Places is not configured, so local company discovery was skipped. Add a key in Settings → Integrations.';
+    await prisma.leadSource.update({
+      where: { id: source.id },
+      data: { lastRunAt: new Date(), lastError: result.error },
+    });
+    return result;
+  }
 
   const locations = await prisma.location.findMany({
     where: {

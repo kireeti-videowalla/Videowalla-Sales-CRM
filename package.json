@@ -21,7 +21,9 @@
     "seed:dev-fixtures": "tsx prisma/dev-fixtures.ts",
     "bootstrap:owner": "tsx scripts/bootstrap-owner.ts",
     "test": "tsx --test src/**/*.test.ts",
-    "test:acceptance": "tsx scripts/acceptance-test.ts"
+    "test:acceptance": "tsx scripts/acceptance-test.ts",
+    "check": "tsx scripts/readiness.ts",
+    "test:followups": "tsx scripts/followup-continuity-test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

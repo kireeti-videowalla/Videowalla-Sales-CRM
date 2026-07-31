@@ -145,12 +145,27 @@ async function resetTestData(): Promise<void> {
   });
   const userIds = testUsers.map((u) => u.id);
   if (userIds.length) {
+    // These rows hold a required reference to User with no cascade, so they
+    // must go first. A previous run's browser session can leave attempts and
+    // notes on tickets outside this test's company scope, which is exactly the
+    // case that used to break cleanup with a foreign-key error.
+    await prisma.contactAttempt.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.note.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.meeting.deleteMany({ where: { createdById: { in: userIds } } });
+    await prisma.followUp.deleteMany({
+      where: { OR: [{ ownerId: { in: userIds } }, { completedById: { in: userIds } }] },
+    });
+
     await prisma.weeklySprint.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.shift.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.activityEvent.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.notification.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.workSchedule.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.compensationSetting.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.report.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.invitation.deleteMany({
+      where: { OR: [{ invitedById: { in: userIds } }, { acceptedById: { in: userIds } }] },
+    });
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
   }
 
@@ -318,7 +333,15 @@ async function main(): Promise<void> {
     );
   }
 
+  // Scope to the companies THIS run produced. The database may legitimately
+  // hold other tickets — a previous run, development fixtures, real leads — and
+  // a global query would make the test pass or fail for unrelated reasons.
+  const testCompanyIds = [
+    ...new Set(outcomes.map((o) => o.companyId).filter((id): id is string => Boolean(id))),
+  ];
+
   const allTickets = await prisma.leadTicket.findMany({
+    where: { companyId: { in: testCompanyIds } },
     include: { company: true, opportunity: true, stage: true, scores: { where: { isCurrent: true } } },
     orderBy: { score: 'desc' },
   });
@@ -361,11 +384,16 @@ async function main(): Promise<void> {
   // The offline rules engine cannot verify revenue or headcount, so it scores
   // conservatively and routes to Review Required. That is the designed
   // behaviour: an uncertain lead must not be silently dialled.
-  const reviewQueue = await listReviewQueue();
+  const ownTickets = (where: Record<string, unknown>) =>
+    prisma.leadTicket.count({ where: { companyId: { in: testCompanyIds }, ...where } });
+
+  const reviewQueue = (await listReviewQueue(200)).filter((t) =>
+    testCompanyIds.includes(t.companyId),
+  );
   check('low-confidence leads are routed to Review Required', reviewQueue.length > 0, `${reviewQueue.length} queued`);
   check(
     'nothing was auto-queued for calling without enough confidence',
-    (await prisma.leadTicket.count({ where: { stage: { key: 'ready_to_contact' } } })) === 0,
+    (await ownTickets({ stage: { key: 'ready_to_contact' } })) === 0,
   );
 
   const approvedBatch = await approveReviewBatch(
@@ -374,7 +402,7 @@ async function main(): Promise<void> {
   );
   check('the owner can approve reviewed leads for calling', approvedBatch.approved === reviewQueue.length, approvedBatch.errors.join('; '));
 
-  const readyCount = await prisma.leadTicket.count({ where: { stage: { key: 'ready_to_contact' } } });
+  const readyCount = await ownTickets({ stage: { key: 'ready_to_contact' } });
   check('approved leads are now Ready to Contact', readyCount === reviewQueue.length, `${readyCount} ready`);
 
   const approvalHistory = await prisma.stageHistory.findFirst({
@@ -388,6 +416,17 @@ async function main(): Promise<void> {
   // Plan the week in progress so the rep can work immediately. Skip live
   // ingestion: this run supplies its own source material and has no Google
   // credentials.
+  // The planner draws from every unassigned, ready lead in the system — not
+  // only the ones this test created — so capture the real supply it will see.
+  const availableBeforePlanning = await prisma.leadTicket.count({
+    where: {
+      assigneeId: null,
+      closedAt: null,
+      stage: { key: 'ready_to_contact' },
+      company: { doNotContact: false },
+    },
+  });
+
   const plan = await runSundayPlanning({ skipIngestion: true, targetWeek: 'current' });
 
   check('a sprint was created for the sales rep', plan.sprints.length === 1, `${plan.sprints.length} sprints`);
@@ -400,7 +439,8 @@ async function main(): Promise<void> {
     check('a total contact target was calculated', (planned.targets.TOTAL_CONTACTS ?? 0) > 0);
     check(
       'the target does not exceed the qualified leads available',
-      (planned.targets.NEW_CONTACTS ?? 0) <= allTickets.length,
+      (planned.targets.NEW_CONTACTS ?? 0) <= availableBeforePlanning,
+      `target ${planned.targets.NEW_CONTACTS} vs ${availableBeforePlanning} available`,
     );
     check('targets are explained in writing', planned.rationale.length >= 3);
     check(
