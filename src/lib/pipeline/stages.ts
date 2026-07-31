@@ -6,6 +6,7 @@ import { createFollowUp, scheduleRuleFollowUp } from '../followups/service';
 import { notify } from '../notifications/service';
 import { getSetting } from '../settings/service';
 import { addDaysInTz, DEFAULT_TIMEZONE } from '../time';
+import { FIELD_LABELS } from './field-labels';
 
 const log = createLogger('pipeline.stages');
 
@@ -16,26 +17,8 @@ const log = createLogger('pipeline.stages');
  */
 export type StageFormData = Record<string, string | boolean | number | null | undefined>;
 
-export const FIELD_LABELS: Record<string, string> = {
-  contactMethod: 'Contact method',
-  attemptNumber: 'Attempt number',
-  conversationSummary: 'Conversation summary',
-  interestLevel: 'Interest level',
-  mainProblem: 'Main problem discussed',
-  nextAction: 'Next action',
-  followUpDate: 'Follow-up date',
-  followUpReason: 'Follow-up reason',
-  interestSummary: 'What they are interested in',
-  recommendedService: 'Recommended Videowalla service',
-  expectedNextStep: 'Expected next step',
-  contactEmail: 'Contact email',
-  meetingType: 'Meeting type',
-  proposedDate: 'Proposed date or booking method',
-  notInterestedReason: 'Reason',
-  reactivationAppropriate: 'Whether reactivation is appropriate',
-  disqualificationReason: 'Disqualification reason',
-  doNotContactReason: 'Reason',
-};
+export { FIELD_LABELS };
+
 
 export function validateStageFields(
   stage: PipelineStage,

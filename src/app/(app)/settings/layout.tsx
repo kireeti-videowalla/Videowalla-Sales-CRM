@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 const SETTINGS_NAV = [
   { href: '/settings', label: 'General' },
   { href: '/settings/discovery', label: 'Discovery' },
+  { href: '/settings/pipeline', label: 'Kanban & outcomes' },
   { href: '/settings/scoring', label: 'Scoring' },
   { href: '/settings/sprint', label: 'Sprint & shifts' },
   { href: '/settings/followups', label: 'Follow-ups' },

@@ -103,6 +103,7 @@ hard-coded.
 | --- | --- |
 | Settings → General | Videowalla services and positioning, ideal customer profile, AI provider |
 | Settings → Discovery | Lead sources, hiring keywords, locations and priorities, industries, posting-age bands |
+| Settings → Kanban & outcomes | Rename, recolour, reorder, add or remove board columns; what each column requires; the contact outcomes she picks from |
 | Settings → Scoring | The twelve scoring factors, their weights, and the band thresholds |
 | Settings → Sprint & shifts | Weekly planning schedule, capacity maths, target ranges, shift and inactivity policy, performance-score weights |
 | Settings → Follow-ups | Retry timings, reactivation windows, contact outcomes |
@@ -201,11 +202,13 @@ always.
 | `npm test` | Unit tests (time, normalization, parsing, targets) |
 | `npm run test:acceptance` | Full workflow against a real database |
 | `npm run typecheck` | TypeScript, no emit |
+| `npm run check` | Go-live readiness report |
 
 ### Tests
 
-- `npm test` — 33 unit assertions covering DST-safe week boundaries, company
-  and phone normalization, alert-email parsing and target calculation.
+- `npm test` — 40 unit assertions covering DST-safe week boundaries, company
+  and phone normalization, alert-email parsing, target calculation and lead
+  filter composition.
 - `npm run test:acceptance` — 110 assertions driving the real pipeline
   end to end: three alert emails in, deduplication, qualification, enrichment,
   scoring, ticket creation, owner review, sprint planning, approval, a worked

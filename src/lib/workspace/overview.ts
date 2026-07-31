@@ -1,6 +1,7 @@
 import { prisma } from '../db';
 import { computeActiveSeconds } from '../shifts/service';
 import { computeScorecard } from '../sprint/scorecard';
+import { getMonthlyProgress } from '../sprint/monthly';
 import {
   DEFAULT_TIMEZONE,
   endOfMonthInTz,
@@ -93,8 +94,11 @@ export async function getOwnerOverview(timezone = DEFAULT_TIMEZONE) {
         { contacts: 0, conversations: 0, meetings: 0, hours: 0, costCents: 0 },
       );
 
+      const monthlyProgress = await getMonthlyProgress(rep.id, now, timezone);
+
       return {
         rep,
+        monthlyProgress,
         openShift,
         isWorking: openShift?.status === 'ACTIVE',
         isPaused: openShift?.status === 'PAUSED',

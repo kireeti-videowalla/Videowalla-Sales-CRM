@@ -196,6 +196,31 @@ export default async function OverviewPage() {
                   </div>
                 )}
 
+                {/* Monthly target progress — the spec's "is the month on track" view. */}
+                <div className="border-t border-ink-200 p-4">
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">
+                    {r.monthlyProgress.label} progress
+                  </h3>
+                  {r.monthlyProgress.targets.every((t) => t.target === 0) ? (
+                    <p className="text-sm text-ink-400">
+                      No monthly targets yet — they are summed from the weekly plans as sprints are created.
+                    </p>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {r.monthlyProgress.targets
+                        .filter((t) => t.target > 0)
+                        .map((t) => (
+                          <Progress
+                            key={t.key}
+                            label={`${t.label}${t.isOverridden ? ' (overridden)' : ''}`}
+                            value={t.achieved}
+                            max={t.target}
+                          />
+                        ))}
+                    </div>
+                  )}
+                </div>
+
                 {r.previousScorecards.length > 0 && (
                   <div className="flex items-center gap-3 border-t border-ink-200 px-4 py-2">
                     <span className="text-xs text-ink-500">Four-week trend</span>

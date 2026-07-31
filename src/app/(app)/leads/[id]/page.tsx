@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth/session';
 import { can } from '@/lib/auth/rbac';
 import { getTicketDetail } from '@/lib/workspace/ticket';
+import { prisma } from '@/lib/db';
 import { listOutcomes } from '@/lib/pipeline/contact-attempts';
 import { isIntegrationReady } from '@/lib/integrations/store';
 import { markLeadOpenedAction } from '@/app/actions/tickets';
@@ -11,6 +12,7 @@ import { addDays, formatDateInTz, formatInTz, DEFAULT_TIMEZONE } from '@/lib/tim
 import { bandLabel } from '@/lib/pipeline/scoring';
 import { Alert, Badge, Card, EstimatedValue, formatMoney } from '@/components/ui';
 import { OutcomeForm } from '@/components/outcome-form';
+import { AssignLead } from '@/components/assign-lead';
 import {
   FollowUpComposer,
   MeetingComposer,
@@ -43,6 +45,14 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   const tz = user.timezone || DEFAULT_TIMEZONE;
   const outcomes = await listOutcomes();
   const calendarConnected = await isIntegrationReady('GOOGLE_CALENDAR');
+  // Only the owner may reassign, so only fetch the rep list for them.
+  const reps = can(user.role, 'leads.assign')
+    ? await prisma.user.findMany({
+        where: { role: 'SALES_REP', status: 'ACTIVE' },
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      })
+    : [];
 
   const opp = ticket.opportunity;
   const company = ticket.company;
@@ -320,6 +330,12 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
               )}
             </div>
           </Card>
+
+          {can(user.role, 'leads.assign') && (
+            <Card title="Assignment">
+              <AssignLead ticketId={ticket.id} currentAssigneeId={ticket.assigneeId} reps={reps} />
+            </Card>
+          )}
 
           <Card title="The company">
             <dl className="divide-y divide-ink-200 text-sm">

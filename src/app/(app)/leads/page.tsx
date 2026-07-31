@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import type { Prisma } from '@prisma/client';
 import { requireUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db';
 import { formatPhone } from '@/lib/normalize';
+import { buildLeadWhere } from '@/lib/leads/filters';
 import { DEFAULT_TIMEZONE, formatInTz } from '@/lib/time';
 import { bandLabel } from '@/lib/pipeline/scoring';
 import { Badge, Card, EmptyState, LinkButton, inputClass } from '@/components/ui';
@@ -22,39 +22,19 @@ export default async function LeadsPage({
   const params = await searchParams;
   const page = Math.max(1, Number(params.page ?? 1) || 1);
 
-  const [stages, industries, locations, reps] = await Promise.all([
+  const [stages, industries, locations, reps, sprints] = await Promise.all([
     prisma.pipelineStage.findMany({ where: { isActive: true }, orderBy: { position: 'asc' } }),
     prisma.industry.findMany({ where: { isActive: true }, orderBy: { priority: 'asc' } }),
     prisma.location.findMany({ where: { isActive: true }, orderBy: { priority: 'asc' } }),
     prisma.user.findMany({ where: { role: 'SALES_REP' }, orderBy: { name: 'asc' } }),
+    prisma.weeklySprint.findMany({
+      orderBy: { weekStart: 'desc' },
+      take: 12,
+      select: { id: true, label: true, user: { select: { name: true } } },
+    }),
   ]);
 
-  const where: Prisma.LeadTicketWhereInput = {
-    // A rep can only ever list their own leads, whatever the query string says.
-    ...(user.role === 'SALES_REP' ? { assigneeId: user.id } : {}),
-    ...(params.stage ? { stage: { key: params.stage } } : {}),
-    ...(params.assignee
-      ? params.assignee === 'unassigned'
-        ? { assigneeId: null }
-        : { assigneeId: params.assignee }
-      : {}),
-    ...(params.minScore ? { score: { gte: Number(params.minScore) || 0 } } : {}),
-    ...(params.priority ? { priority: params.priority as never } : {}),
-    ...(params.hasPhone === 'yes' ? { company: { normalizedPhone: { not: null } } } : {}),
-    ...(params.industry ? { company: { industry: { slug: params.industry } } } : {}),
-    ...(params.location ? { company: { location: { slug: params.location } } } : {}),
-    ...(params.hiring === 'yes' ? { opportunity: { kind: 'HIRING_INTENT' } } : {}),
-    ...(params.dnc === 'yes' ? { company: { doNotContact: true } } : {}),
-    ...(params.q
-      ? {
-          OR: [
-            { company: { name: { contains: params.q, mode: 'insensitive' } } },
-            { reference: { contains: params.q, mode: 'insensitive' } },
-            { opportunity: { headline: { contains: params.q, mode: 'insensitive' } } },
-          ],
-        }
-      : {}),
-  };
+  const where = buildLeadWhere(params, user.role, user.id);
 
   const [tickets, total] = await Promise.all([
     prisma.leadTicket.findMany({
@@ -170,6 +150,93 @@ export default async function LeadsPage({
               <option value="yes">Actively hiring</option>
             </select>
           </label>
+          <label className="block">
+            <span className="text-xs font-medium text-ink-700">Hiring role</span>
+            <input name="role" defaultValue={params.role ?? ''} className={`${inputClass} mt-1`} placeholder="e.g. videographer" />
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-ink-700">Posted within (days)</span>
+            <input type="number" min={1} name="postingAge" defaultValue={params.postingAge ?? ''} className={`${inputClass} mt-1`} />
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-ink-700">Employees (min)</span>
+            <input type="number" min={0} name="minEmployees" defaultValue={params.minEmployees ?? ''} className={`${inputClass} mt-1`} />
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-ink-700">Employees (max)</span>
+            <input type="number" min={1} name="maxEmployees" defaultValue={params.maxEmployees ?? ''} className={`${inputClass} mt-1`} />
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-ink-700">Min revenue ($)</span>
+            <input type="number" min={0} step={1000} name="minRevenue" defaultValue={params.minRevenue ?? ''} className={`${inputClass} mt-1`} />
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-ink-700">Maximum score</span>
+            <input type="number" min={0} max={100} name="maxScore" defaultValue={params.maxScore ?? ''} className={`${inputClass} mt-1`} />
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-ink-700">Priority</span>
+            <select name="priority" defaultValue={params.priority ?? ''} className={`${inputClass} mt-1`}>
+              <option value="">Any</option>
+              <option value="PRIORITY">Priority</option>
+              <option value="HIGH">High</option>
+              <option value="NORMAL">Normal</option>
+              <option value="LOW">Low</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-ink-700">Weekly sprint</span>
+            <select name="sprint" defaultValue={params.sprint ?? ''} className={`${inputClass} mt-1`}>
+              <option value="">Any week</option>
+              <option value="none">Not in a sprint</option>
+              {sprints.map((sp) => (
+                <option key={sp.id} value={sp.id}>
+                  {sp.label} — {sp.user.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-ink-700">Lead source</span>
+            <select name="source" defaultValue={params.source ?? ''} className={`${inputClass} mt-1`}>
+              <option value="">Any source</option>
+              <option value="GOOGLE_ALERT">Google Alerts</option>
+              <option value="JOB_ALERT_EMAIL">Job alert email</option>
+              <option value="INDEED_ALERT_EMAIL">Indeed alert</option>
+              <option value="LINKEDIN_ALERT_EMAIL">LinkedIn alert</option>
+              <option value="GMAIL_MESSAGE">Other email</option>
+              <option value="PLACES_API">Local discovery</option>
+              <option value="MANUAL_URL">Manually added</option>
+              <option value="CSV_IMPORT">CSV import</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-ink-700">Email available</span>
+            <select name="hasEmail" defaultValue={params.hasEmail ?? ''} className={`${inputClass} mt-1`}>
+              <option value="">Any</option>
+              <option value="yes">Has an email</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-ink-700">Data quality</span>
+            <select name="dataQuality" defaultValue={params.dataQuality ?? ''} className={`${inputClass} mt-1`}>
+              <option value="">Any</option>
+              <option value="verified">Has verified data</option>
+              <option value="estimated">Estimated only</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-ink-700">Follow-up due before</span>
+            <input type="date" name="followUpBefore" defaultValue={params.followUpBefore ?? ''} className={`${inputClass} mt-1`} />
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-ink-700">Do not contact</span>
+            <select name="dnc" defaultValue={params.dnc ?? ''} className={`${inputClass} mt-1`}>
+              <option value="">Hidden by default</option>
+              <option value="yes">Show only do-not-contact</option>
+            </select>
+          </label>
+
           <div className="flex items-end gap-2">
             <button type="submit" className="rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-brand-700">
               Apply

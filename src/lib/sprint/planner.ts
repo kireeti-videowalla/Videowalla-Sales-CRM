@@ -16,6 +16,7 @@ import {
 } from '../time';
 import { computeScorecard, saveScorecard } from './scorecard';
 import { calculateTargets, leadsToPrepare, TARGET_DEFINITIONS, type TargetInputs } from './targets';
+import { refreshMonthlyTargets } from './monthly';
 import type { PlannedShift } from '../shifts/service';
 
 const log = createLogger('sprint.planner');
@@ -385,6 +386,11 @@ export async function runSundayPlanning(options: {
       },
       data: { sprintId: sprint.id, ownerId: rep.id },
     });
+
+    // Keep the monthly view consistent with the weeks that make it up.
+    await refreshMonthlyTargets(rep.id, nextWeekStart, timezone).catch((err) =>
+      log.warn('could not refresh monthly targets', { userId: rep.id, err: String(err) }),
+    );
 
     report.sprints.push({
       sprintId: sprint.id,
