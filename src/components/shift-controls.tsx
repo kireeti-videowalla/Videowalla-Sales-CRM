@@ -17,6 +17,10 @@ function formatDuration(seconds: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
 
+/**
+ * The single most-used control in the product. It is deliberately the largest
+ * thing on her screen: one obvious action, no hunting.
+ */
 export function ShiftControls({
   isActive,
   isPaused,
@@ -33,7 +37,7 @@ export function ShiftControls({
   const [showPause, setShowPause] = useState(false);
 
   // The authoritative elapsed time lives on the server; this only animates the
-  // display between renders so the rep sees the clock move.
+  // display between renders so the clock visibly moves.
   const [ticks, setTicks] = useState(0);
   useEffect(() => {
     if (!isActive) return;
@@ -56,17 +60,26 @@ export function ShiftControls({
     });
   };
 
+  const statusLabel = isActive ? 'On shift' : isPaused ? 'Paused' : 'Not working';
+  const statusTone = isActive ? 'bg-good-600' : isPaused ? 'bg-warn-600' : 'bg-ink-300';
+
   return (
-    <div className="rounded-xl border border-ink-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="overflow-hidden rounded-card border border-hairline bg-white shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-6 px-6 py-7">
         <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-ink-500">
-            {isActive ? 'Shift running' : isPaused ? 'Shift paused' : 'No shift running'}
+          <div className="flex items-center gap-2">
+            <span className={`h-2 w-2 rounded-full ${statusTone} ${isActive ? 'animate-pulse' : ''}`} />
+            <span className="text-[12px] font-medium uppercase tracking-[0.06em] text-ink-500">
+              {statusLabel}
+            </span>
           </div>
-          <div className="tnum mt-1 text-3xl font-semibold text-ink-900" aria-live="polite">
+          <div
+            className="tnum display-lg mt-2 text-[44px] font-semibold leading-none text-ink-900"
+            aria-live="polite"
+          >
             {formatDuration(displaySeconds)}
           </div>
-          <div className="mt-0.5 text-xs text-ink-500">Active time this shift</div>
+          <div className="mt-2 text-[13px] text-ink-500">Active time this shift</div>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -77,20 +90,20 @@ export function ShiftControls({
           )}
           {isActive && (
             <>
-              <Button variant="secondary" disabled={pending} onClick={() => setShowPause((v) => !v)}>
+              <Button variant="secondary" size="lg" disabled={pending} onClick={() => setShowPause((v) => !v)}>
                 Pause
               </Button>
-              <Button variant="secondary" disabled={pending} onClick={() => setShowEnd((v) => !v)}>
+              <Button variant="secondary" size="lg" disabled={pending} onClick={() => setShowEnd((v) => !v)}>
                 End shift
               </Button>
             </>
           )}
           {isPaused && (
             <>
-              <Button disabled={pending} onClick={() => run(resumeShiftAction)}>
+              <Button size="lg" disabled={pending} onClick={() => run(resumeShiftAction)}>
                 {pending ? 'Resuming…' : 'Resume'}
               </Button>
-              <Button variant="secondary" disabled={pending} onClick={() => setShowEnd((v) => !v)}>
+              <Button variant="secondary" size="lg" disabled={pending} onClick={() => setShowEnd((v) => !v)}>
                 End shift
               </Button>
             </>
@@ -100,17 +113,17 @@ export function ShiftControls({
 
       {showPause && (
         <form
-          className="mt-4 flex flex-wrap items-end gap-2 border-t border-ink-200 pt-4"
+          className="flex flex-wrap items-end gap-3 border-t border-hairline bg-ink-50 px-6 py-4"
           action={(fd) => run(() => pauseShiftAction({ error: null }, fd))}
         >
           <div className="min-w-[220px] flex-1">
-            <label className="block text-xs font-medium text-ink-700" htmlFor="pause-reason">
+            <label className="block text-[12px] font-medium text-ink-700" htmlFor="pause-reason">
               Reason for the break (optional)
             </label>
             <input
               id="pause-reason"
               name="reason"
-              className="mt-1 block w-full rounded-lg border-0 px-3 py-2 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-500"
+              className="mt-1.5 block w-full rounded-control border-0 bg-white px-3.5 py-2.5 text-[13px] ring-1 ring-inset ring-hairline focus:ring-2 focus:ring-brand-500"
               placeholder="Lunch, meeting, interruption…"
             />
           </div>
@@ -122,18 +135,18 @@ export function ShiftControls({
 
       {showEnd && (
         <form
-          className="mt-4 flex flex-wrap items-end gap-2 border-t border-ink-200 pt-4"
+          className="flex flex-wrap items-end gap-3 border-t border-hairline bg-ink-50 px-6 py-4"
           action={(fd) => run(() => endShiftAction({ error: null }, fd))}
         >
           <div className="min-w-[220px] flex-1">
-            <label className="block text-xs font-medium text-ink-700" htmlFor="end-note">
-              End-of-shift note (optional)
+            <label className="block text-[12px] font-medium text-ink-700" htmlFor="end-note">
+              Anything worth noting? (optional)
             </label>
             <input
               id="end-note"
               name="note"
-              className="mt-1 block w-full rounded-lg border-0 px-3 py-2 text-sm ring-1 ring-inset ring-ink-300 focus:ring-2 focus:ring-brand-500"
-              placeholder="Anything the owner should know"
+              className="mt-1.5 block w-full rounded-control border-0 bg-white px-3.5 py-2.5 text-[13px] ring-1 ring-inset ring-hairline focus:ring-2 focus:ring-brand-500"
+              placeholder="How the shift went"
             />
           </div>
           <Button type="submit" disabled={pending}>
@@ -143,14 +156,14 @@ export function ShiftControls({
       )}
 
       {error && (
-        <div className="mt-3">
+        <div className="border-t border-hairline px-6 py-4">
           <Alert tone="bad">{error}</Alert>
         </div>
       )}
       {warnings.length > 0 && (
-        <div className="mt-3">
+        <div className="border-t border-hairline px-6 py-4">
           <Alert tone="warn" title="Shift ended, with gaps">
-            <ul className="list-inside list-disc">
+            <ul className="mt-1 list-inside list-disc">
               {warnings.map((w) => (
                 <li key={w}>{w}</li>
               ))}

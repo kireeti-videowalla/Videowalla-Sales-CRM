@@ -1,7 +1,18 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-/** Small, dependency-free primitives. Kept plain so the UI stays fast and legible. */
+/**
+ * The design system.
+ *
+ * Principles, applied consistently so the product reads as one thing:
+ *  - One accent colour. Everything else is neutral. Colour appears only when it
+ *    carries meaning — a threshold crossed, a state that needs attention.
+ *  - Hierarchy comes from type weight, size and whitespace, not from boxes,
+ *    borders and competing tints.
+ *  - Numbers are tabular and large; their labels are small and quiet. The
+ *    figure is the content, the label is the caption.
+ *  - Hairline borders and soft, shallow shadows. Nothing heavy.
+ */
 
 export function Card({
   children,
@@ -9,22 +20,31 @@ export function Card({
   title,
   subtitle,
   action,
+  flush = false,
 }: {
   children?: ReactNode;
   className?: string;
   title?: ReactNode;
   subtitle?: ReactNode;
   action?: ReactNode;
+  /** Removes the header's bottom rule for cards whose body supplies its own. */
+  flush?: boolean;
 }) {
   return (
-    <section className={`rounded-xl border border-ink-200 bg-white shadow-sm ${className}`}>
+    <section
+      className={`rounded-card border border-hairline bg-white shadow-card ${className}`}
+    >
       {(title || action) && (
-        <header className="flex items-start justify-between gap-4 border-b border-ink-200 px-5 py-3">
-          <div>
-            {title && <h2 className="text-sm font-semibold text-ink-900">{title}</h2>}
-            {subtitle && <p className="mt-0.5 text-xs text-ink-500">{subtitle}</p>}
+        <header
+          className={`flex items-start justify-between gap-4 px-6 py-4 ${
+            flush ? '' : 'border-b border-hairline'
+          }`}
+        >
+          <div className="min-w-0">
+            {title && <h2 className="display text-[15px] font-semibold text-ink-900">{title}</h2>}
+            {subtitle && <p className="mt-1 text-[13px] leading-relaxed text-ink-500">{subtitle}</p>}
           </div>
-          {action}
+          {action && <div className="shrink-0">{action}</div>}
         </header>
       )}
       {children}
@@ -45,17 +65,30 @@ export function Stat({
 }) {
   const toneClass =
     tone === 'good'
-      ? 'text-emerald-600'
+      ? 'text-good-600'
       : tone === 'warn'
-        ? 'text-amber-600'
+        ? 'text-warn-600'
         : tone === 'bad'
-          ? 'text-red-600'
+          ? 'text-bad-600'
           : 'text-ink-900';
   return (
-    <div className="rounded-xl border border-ink-200 bg-white px-4 py-3 shadow-sm">
-      <div className="text-xs font-medium uppercase tracking-wide text-ink-500">{label}</div>
-      <div className={`tnum mt-1 text-2xl font-semibold ${toneClass}`}>{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-ink-500">{sub}</div>}
+    <div>
+      <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-ink-500">{label}</div>
+      <div className={`tnum display mt-1.5 text-[26px] font-semibold leading-none ${toneClass}`}>
+        {value}
+      </div>
+      {sub && <div className="mt-1.5 text-[12px] leading-snug text-ink-500">{sub}</div>}
+    </div>
+  );
+}
+
+/** Stat grid with hairline dividers instead of nested boxes. */
+export function StatRow({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <div
+      className={`grid divide-y divide-hairline sm:divide-y-0 sm:divide-x [&>*]:px-6 [&>*]:py-5 ${className}`}
+    >
+      {children}
     </div>
   );
 }
@@ -65,35 +98,44 @@ export function Progress({
   max,
   label,
   showNumbers = true,
+  size = 'md',
 }: {
   value: number;
   max: number;
   label?: string;
   showNumbers?: boolean;
+  size?: 'sm' | 'md';
 }) {
-  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
-  const tone = pct >= 100 ? 'bg-emerald-500' : pct >= 60 ? 'bg-brand-500' : pct >= 30 ? 'bg-amber-500' : 'bg-red-400';
+  const hasTarget = max > 0;
+  const pct = hasTarget ? Math.min(100, Math.round((value / max) * 100)) : 0;
+  const tone =
+    pct >= 100 ? 'bg-good-600' : pct >= 60 ? 'bg-brand-500' : pct >= 30 ? 'bg-warn-600' : 'bg-bad-600';
   return (
     <div>
       {(label || showNumbers) && (
-        <div className="mb-1 flex items-baseline justify-between text-xs">
-          {label && <span className="font-medium text-ink-700">{label}</span>}
+        <div className="mb-2 flex items-baseline justify-between gap-3">
+          {label && <span className="truncate text-[13px] font-medium text-ink-700">{label}</span>}
           {showNumbers && (
-            <span className="tnum text-ink-500">
-              {value} / {max}
+            <span className="tnum shrink-0 text-[12px] text-ink-500">
+              {value}
+              {/* No target set is stated plainly rather than shown as "/ 0". */}
+              <span className="text-ink-400">{hasTarget ? ` / ${max}` : ' · no target'}</span>
             </span>
           )}
         </div>
       )}
       <div
-        className="h-2 w-full overflow-hidden rounded-full bg-ink-200"
+        className={`w-full overflow-hidden rounded-full bg-ink-200 ${size === 'sm' ? 'h-1' : 'h-1.5'}`}
         role="progressbar"
         aria-valuenow={value}
         aria-valuemin={0}
         aria-valuemax={max}
         aria-label={label ?? 'Progress'}
       >
-        <div className={`h-full rounded-full ${tone}`} style={{ width: `${pct}%` }} />
+        <div
+          className={`h-full rounded-full transition-[width] duration-500 ease-out ${tone}`}
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );
@@ -103,25 +145,36 @@ export function Badge({
   children,
   tone = 'neutral',
   title,
+  dot = false,
 }: {
   children: ReactNode;
   tone?: 'neutral' | 'good' | 'warn' | 'bad' | 'info' | 'estimate';
   title?: string;
+  dot?: boolean;
 }) {
   const tones: Record<string, string> = {
-    neutral: 'bg-ink-100 text-ink-700 ring-ink-200',
-    good: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    warn: 'bg-amber-50 text-amber-700 ring-amber-200',
-    bad: 'bg-red-50 text-red-700 ring-red-200',
-    info: 'bg-blue-50 text-blue-700 ring-blue-200',
-    // Deliberately distinct so an estimate never reads as a verified fact.
-    estimate: 'bg-violet-50 text-violet-700 ring-violet-200',
+    neutral: 'bg-ink-100 text-ink-600',
+    good: 'bg-good-50 text-good-600',
+    warn: 'bg-warn-50 text-warn-600',
+    bad: 'bg-bad-50 text-bad-600',
+    info: 'bg-brand-50 text-brand-700',
+    // Visually distinct so an estimate never reads as a verified fact.
+    estimate: 'bg-ink-100 text-ink-500',
+  };
+  const dots: Record<string, string> = {
+    neutral: 'bg-ink-400',
+    good: 'bg-good-600',
+    warn: 'bg-warn-600',
+    bad: 'bg-bad-600',
+    info: 'bg-brand-500',
+    estimate: 'bg-ink-400',
   };
   return (
     <span
       title={title}
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${tones[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium leading-none ${tones[tone]}`}
     >
+      {dot && <span className={`h-1.5 w-1.5 rounded-full ${dots[tone]}`} />}
       {children}
     </span>
   );
@@ -137,13 +190,29 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
-      <p className="text-sm font-semibold text-ink-700">{title}</p>
-      {body && <p className="max-w-md text-sm text-ink-500">{body}</p>}
-      {action}
+    <div className="flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
+      <p className="display text-[15px] font-semibold text-ink-800">{title}</p>
+      {body && <p className="max-w-md text-[13px] leading-relaxed text-ink-500">{body}</p>}
+      {action && <div className="mt-3">{action}</div>}
     </div>
   );
 }
+
+const BUTTON_BASE =
+  'inline-flex items-center justify-center gap-1.5 rounded-full font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100';
+
+const BUTTON_VARIANTS: Record<string, string> = {
+  primary: 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm',
+  secondary: 'bg-white text-ink-800 ring-1 ring-inset ring-hairline hover:bg-ink-50 shadow-sm',
+  ghost: 'text-ink-600 hover:bg-ink-100',
+  danger: 'bg-bad-600 text-white hover:brightness-110 shadow-sm',
+};
+
+const BUTTON_SIZES: Record<string, string> = {
+  sm: 'px-3 py-1.5 text-[12px]',
+  md: 'px-4 py-2 text-[13px]',
+  lg: 'px-6 py-3 text-[15px]',
+};
 
 export function Button({
   children,
@@ -156,21 +225,10 @@ export function Button({
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
 }) {
-  const variants: Record<string, string> = {
-    primary: 'bg-brand-600 text-white hover:bg-brand-700 disabled:bg-ink-300',
-    secondary: 'bg-white text-ink-800 ring-1 ring-inset ring-ink-300 hover:bg-ink-50',
-    ghost: 'text-ink-600 hover:bg-ink-100',
-    danger: 'bg-red-600 text-white hover:bg-red-700',
-  };
-  const sizes: Record<string, string> = {
-    sm: 'px-2.5 py-1 text-xs',
-    md: 'px-3.5 py-2 text-sm',
-    lg: 'px-5 py-3 text-base',
-  };
   return (
     <button
       type={type}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`${BUTTON_BASE} ${BUTTON_VARIANTS[variant]} ${BUTTON_SIZES[size]} ${className}`}
       {...rest}
     >
       {children}
@@ -183,22 +241,18 @@ export function LinkButton({
   children,
   variant = 'secondary',
   size = 'md',
+  className = '',
 }: {
   href: string;
   children: ReactNode;
   variant?: 'primary' | 'secondary' | 'ghost';
   size?: 'sm' | 'md';
+  className?: string;
 }) {
-  const variants: Record<string, string> = {
-    primary: 'bg-brand-600 text-white hover:bg-brand-700',
-    secondary: 'bg-white text-ink-800 ring-1 ring-inset ring-ink-300 hover:bg-ink-50',
-    ghost: 'text-ink-600 hover:bg-ink-100',
-  };
-  const sizes: Record<string, string> = { sm: 'px-2.5 py-1 text-xs', md: 'px-3.5 py-2 text-sm' };
   return (
     <Link
       href={href}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors ${variants[variant]} ${sizes[size]}`}
+      className={`${BUTTON_BASE} ${BUTTON_VARIANTS[variant]} ${BUTTON_SIZES[size]} ${className}`}
     >
       {children}
     </Link>
@@ -218,18 +272,18 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-sm font-medium text-ink-700">
+      <span className="block text-[13px] font-medium text-ink-800">
         {label}
-        {required && <span className="ml-0.5 text-red-500">*</span>}
+        {required && <span className="ml-1 text-bad-600">*</span>}
       </span>
-      {hint && <span className="mt-0.5 block text-xs text-ink-500">{hint}</span>}
-      <div className="mt-1">{children}</div>
+      {hint && <span className="mt-0.5 block text-[12px] leading-snug text-ink-500">{hint}</span>}
+      <div className="mt-1.5">{children}</div>
     </label>
   );
 }
 
 export const inputClass =
-  'block w-full rounded-lg border-0 px-3 py-2 text-sm text-ink-900 shadow-sm ring-1 ring-inset ring-ink-300 placeholder:text-ink-400 focus:ring-2 focus:ring-inset focus:ring-brand-500';
+  'block w-full rounded-control border-0 bg-white px-3.5 py-2.5 text-[13px] text-ink-900 shadow-sm ring-1 ring-inset ring-hairline transition-shadow placeholder:text-ink-400 focus:ring-2 focus:ring-inset focus:ring-brand-500';
 
 export function Alert({
   tone = 'info',
@@ -241,23 +295,43 @@ export function Alert({
   children: ReactNode;
 }) {
   const tones: Record<string, string> = {
-    info: 'border-blue-200 bg-blue-50 text-blue-900',
-    warn: 'border-amber-200 bg-amber-50 text-amber-900',
-    bad: 'border-red-200 bg-red-50 text-red-900',
-    good: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+    info: 'bg-brand-50 text-brand-700',
+    warn: 'bg-warn-50 text-warn-600',
+    bad: 'bg-bad-50 text-bad-600',
+    good: 'bg-good-50 text-good-600',
   };
   return (
-    <div className={`rounded-lg border px-4 py-3 text-sm ${tones[tone]}`} role="status">
+    <div className={`rounded-control px-4 py-3 text-[13px] leading-relaxed ${tones[tone]}`} role="status">
       {title && <p className="font-semibold">{title}</p>}
-      <div className={title ? 'mt-0.5' : ''}>{children}</div>
+      <div className={title ? 'mt-1 opacity-90' : ''}>{children}</div>
+    </div>
+  );
+}
+
+/** Page heading. Used at the top of every screen for a consistent entry point. */
+export function PageHeader({
+  title,
+  subtitle,
+  action,
+}: {
+  title: string;
+  subtitle?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 className="display-lg text-[28px] font-semibold leading-tight text-ink-900">{title}</h1>
+        {subtitle && <p className="mt-1.5 text-[14px] text-ink-500">{subtitle}</p>}
+      </div>
+      {action && <div className="flex shrink-0 gap-2">{action}</div>}
     </div>
   );
 }
 
 /**
- * Renders an estimated value with its provenance. Used everywhere revenue,
- * headcount or contact details are displayed so an estimate is never mistaken
- * for a verified fact.
+ * Renders an estimated value with its provenance, so an estimate is never
+ * mistaken for a verified fact.
  */
 export function EstimatedValue({
   value,
@@ -273,12 +347,12 @@ export function EstimatedValue({
   verified?: boolean;
 }) {
   if (value === null || value === undefined || value === '') {
-    return <span className="text-sm text-ink-400">Not available</span>;
+    return <span className="text-[13px] text-ink-400">Not available</span>;
   }
   const tone = verified ? 'good' : confidence === 'HIGH' ? 'info' : 'estimate';
-  const label = verified ? 'Verified' : `${confidence.charAt(0)}${confidence.slice(1).toLowerCase()} confidence`;
+  const label = verified ? 'Verified' : `${confidence.charAt(0)}${confidence.slice(1).toLowerCase()}`;
   const tooltip = [
-    verified ? 'Verified value' : 'Estimated value — not confirmed',
+    verified ? 'Verified value' : 'Estimated — not confirmed',
     source ? `Source: ${source}` : null,
     checkedAt ? `Checked: ${checkedAt.toLocaleDateString('en-CA')}` : null,
   ]
@@ -286,8 +360,8 @@ export function EstimatedValue({
     .join('\n');
 
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="text-sm text-ink-900">{value}</span>
+    <span className="inline-flex items-center gap-2">
+      <span className="text-[13px] text-ink-900">{value}</span>
       <Badge tone={tone} title={tooltip}>
         {label}
       </Badge>

@@ -13,10 +13,10 @@ import { SignOutButton } from './sign-out-button';
 const OWNER_NAV = [
   { href: '/overview', label: 'Overview' },
   { href: '/sunday-review', label: 'Sunday Review' },
-  { href: '/live-activity', label: 'Live Activity' },
+  { href: '/live-activity', label: 'Live' },
   { href: '/leads', label: 'Leads' },
   { href: '/pipeline', label: 'Pipeline' },
-  { href: '/sprints', label: 'Weekly Sprints' },
+  { href: '/sprints', label: 'Sprints' },
   { href: '/reports', label: 'Reports' },
   { href: '/team', label: 'Team' },
   { href: '/settings', label: 'Settings' },
@@ -25,16 +25,16 @@ const OWNER_NAV = [
 const REP_NAV = [
   { href: '/this-week', label: 'This Week' },
   { href: '/call-queue', label: 'Call Queue' },
-  { href: '/pipeline', label: 'Kanban' },
+  { href: '/pipeline', label: 'Board' },
   { href: '/follow-ups', label: 'Follow-Ups' },
   { href: '/performance', label: 'Performance' },
 ];
 
 const MANAGER_NAV = [
   { href: '/overview', label: 'Overview' },
-  { href: '/live-activity', label: 'Live Activity' },
+  { href: '/live-activity', label: 'Live' },
   { href: '/pipeline', label: 'Pipeline' },
-  { href: '/sprints', label: 'Weekly Sprints' },
+  { href: '/sprints', label: 'Sprints' },
   { href: '/reports', label: 'Reports' },
 ];
 
@@ -55,43 +55,48 @@ export async function AppShell({
   const nav = navFor(user.role);
 
   return (
-    <div className="min-h-screen bg-ink-50">
-      <header className="sticky top-0 z-20 border-b border-ink-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 sm:px-6">
-          <Link href={nav[0]!.href} className="flex shrink-0 items-center gap-2">
-            <span className="grid h-7 w-7 place-items-center rounded-md bg-brand-600 text-xs font-bold text-white">
+    <div className="min-h-screen bg-ink-100">
+      {/* Translucent, hairline-bottomed bar — stays out of the way. */}
+      <header className="sticky top-0 z-30 border-b border-hairline bg-white/80 backdrop-blur-xl backdrop-saturate-150">
+        <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-4 px-4 sm:gap-5 sm:px-8">
+          <Link href={nav[0]!.href} className="flex shrink-0 items-center gap-2.5">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-ink-900 text-[10px] font-bold tracking-tight text-white">
               VW
             </span>
-            <span className="hidden text-sm font-semibold text-ink-900 sm:block">Sales Command Center</span>
+            <span className="display hidden text-[14px] font-semibold text-ink-900 lg:block">
+              Sales Command Center
+            </span>
           </Link>
 
           <NavLinks items={nav} />
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
             <Link
               href="/notifications"
-              className="relative rounded-lg px-2.5 py-1.5 text-sm text-ink-600 hover:bg-ink-100"
+              className="relative rounded-full px-3 py-1.5 text-[13px] text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900"
             >
               Alerts
               {unread > 0 && (
-                <span className="tnum absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+                <span className="tnum absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-bad-600 px-1 text-[10px] font-semibold leading-none text-white">
                   {unread > 99 ? '99+' : unread}
                 </span>
               )}
             </Link>
 
-            <div className="flex items-center gap-2">
+            <div className="mx-1 hidden h-5 w-px bg-hairline sm:block" />
+
+            <div className="flex items-center gap-2.5">
               <span
-                className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
+                className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-semibold text-white"
                 style={{ backgroundColor: user.avatarColor }}
                 title={user.name}
               >
                 {user.name.charAt(0).toUpperCase()}
               </span>
-              <div className="hidden leading-tight sm:block">
-                <div className="text-xs font-medium text-ink-900">{user.name}</div>
+              <div className="hidden leading-tight md:block">
+                <div className="text-[12px] font-medium text-ink-900">{user.name}</div>
                 <div className="text-[11px] text-ink-500">
-                  {user.role === 'OWNER' ? 'Owner' : user.role === 'MANAGER' ? 'Manager' : 'Sales rep'}
+                  {user.role === 'OWNER' ? 'Owner' : user.role === 'MANAGER' ? 'Manager' : 'Sales'}
                 </div>
               </div>
             </div>
@@ -101,7 +106,7 @@ export async function AppShell({
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6">{children}</main>
+      <main className="rise mx-auto max-w-[1600px] overflow-x-hidden px-4 py-7 sm:px-8 sm:py-8">{children}</main>
     </div>
   );
 }

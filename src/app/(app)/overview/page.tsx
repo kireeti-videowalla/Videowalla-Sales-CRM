@@ -3,7 +3,18 @@ import { requireRole } from '@/lib/auth/session';
 import { getOwnerOverview } from '@/lib/workspace/overview';
 import { recentActivity, ACTIVITY_LABELS } from '@/lib/activity/log';
 import { DEFAULT_TIMEZONE, formatInTz, humanDuration } from '@/lib/time';
-import { Alert, Badge, Card, EmptyState, LinkButton, Progress, Stat, formatMoney } from '@/components/ui';
+import {
+  Alert,
+  Badge,
+  Card,
+  EmptyState,
+  LinkButton,
+  PageHeader,
+  Progress,
+  Stat,
+  StatRow,
+  formatMoney,
+} from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,49 +22,46 @@ export default async function OverviewPage() {
   const user = await requireRole('OWNER', 'MANAGER');
   const tz = user.timezone || DEFAULT_TIMEZONE;
   const data = await getOwnerOverview(tz);
-  const activity = await recentActivity(15);
+  const activity = await recentActivity(12);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink-900">Overview</h1>
-          <p className="mt-0.5 text-sm text-ink-500">
-            Week of {formatInTz(data.weekStart, tz, { dateStyle: 'medium' })}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {data.pendingApproval > 0 && (
-            <LinkButton href="/sunday-review" variant="primary" size="sm">
-              Approve next week ({data.pendingApproval})
+    <div className="space-y-7">
+      <PageHeader
+        title="Overview"
+        subtitle={`Week of ${formatInTz(data.weekStart, tz, { dateStyle: 'long' })}`}
+        action={
+          <>
+            {data.pendingApproval > 0 && (
+              <LinkButton href="/sunday-review" variant="primary" size="md">
+                Approve next week ({data.pendingApproval})
+              </LinkButton>
+            )}
+            <LinkButton href="/live-activity" size="md">
+              Live
             </LinkButton>
-          )}
-          <LinkButton href="/live-activity" size="sm">
-            Live activity
-          </LinkButton>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      {/* --- Things needing attention ---------------------------------- */}
       {(data.reviewQueueCount > 0 || data.integrationErrors > 0 || data.deadJobs > 0) && (
         <div className="grid gap-3 sm:grid-cols-3">
           {data.reviewQueueCount > 0 && (
-            <Alert tone="info" title={`${data.reviewQueueCount} leads need review`}>
-              <Link href="/leads?stage=review_required" className="font-medium underline">
-                Approve or disqualify them
+            <Alert tone="info" title={`${data.reviewQueueCount} leads need your review`}>
+              <Link href="/leads?stage=review_required" className="font-medium underline underline-offset-2">
+                Approve or disqualify
               </Link>
             </Alert>
           )}
           {data.integrationErrors > 0 && (
             <Alert tone="warn" title={`${data.integrationErrors} integration${data.integrationErrors === 1 ? '' : 's'} failing`}>
-              <Link href="/settings/integrations" className="font-medium underline">
+              <Link href="/settings/integrations" className="font-medium underline underline-offset-2">
                 Check integrations
               </Link>
             </Alert>
           )}
           {data.deadJobs > 0 && (
             <Alert tone="bad" title={`${data.deadJobs} background job${data.deadJobs === 1 ? '' : 's'} failed`}>
-              <Link href="/settings/automation" className="font-medium underline">
+              <Link href="/settings/automation" className="font-medium underline underline-offset-2">
                 Review and retry
               </Link>
             </Alert>
@@ -65,7 +73,7 @@ export default async function OverviewPage() {
         <Card>
           <EmptyState
             title="No sales representatives yet"
-            body="Invite a salesperson from the Team page. Once they have a schedule, the Sunday automation will prepare their week."
+            body="Invite a salesperson from the Team page. Once she has a schedule, the Sunday automation prepares her week for her."
             action={<LinkButton href="/team" variant="primary">Go to Team</LinkButton>}
           />
         </Card>
@@ -75,54 +83,60 @@ export default async function OverviewPage() {
           const done = r.scorecard?.metrics;
           const score = r.scorecard?.totalScore ?? null;
           const lastScore = r.previousScorecards[0]?.totalScore ?? null;
+          const delta = score !== null && lastScore !== null ? score - lastScore : null;
 
           return (
-            <div key={r.rep.id} className="space-y-3">
-              {/* --- The ten-second answer ------------------------------ */}
+            <div key={r.rep.id} className="space-y-6">
+              {/* --- The ten-second answer -------------------------------- */}
               <Card
                 title={r.rep.name}
                 subtitle={
                   r.isWorking
-                    ? `Working now — started ${formatInTz(r.openShift!.startedAt, tz, { timeStyle: 'short' })}, ${humanDuration(r.currentShiftSeconds)} active`
+                    ? `On shift since ${formatInTz(r.openShift!.startedAt, tz, { timeStyle: 'short' })} · ${humanDuration(r.currentShiftSeconds)} active`
                     : r.isPaused
                       ? 'Shift paused'
-                      : 'Not currently working'
+                      : 'Not working right now'
                 }
                 action={
-                  <Badge tone={r.isWorking ? 'good' : r.isPaused ? 'warn' : 'neutral'}>
+                  <Badge tone={r.isWorking ? 'good' : r.isPaused ? 'warn' : 'neutral'} dot>
                     {r.isWorking ? 'Clocked in' : r.isPaused ? 'Paused' : 'Clocked out'}
                   </Badge>
                 }
               >
-                <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4 lg:grid-cols-7">
+                <StatRow className="grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
                   <Stat
                     label="Hours"
-                    value={`${r.completedHours}`}
-                    sub={`of ${r.scheduledHours} scheduled`}
+                    value={r.completedHours}
+                    sub={`of ${r.scheduledHours} paid`}
                     tone={r.completedHours >= r.scheduledHours ? 'good' : 'default'}
                   />
                   <Stat label="Today" value={r.contactsToday} sub="contacts" />
                   <Stat
                     label="Contacts"
-                    value={`${done?.contactsCompleted ?? 0}/${target('TOTAL_CONTACTS')}`}
+                    value={done?.contactsCompleted ?? 0}
+                    sub={`of ${target('TOTAL_CONTACTS')}`}
                   />
                   <Stat
                     label="Follow-ups"
-                    value={`${done?.followUpsCompleted ?? 0}/${target('FOLLOW_UPS')}`}
+                    value={done?.followUpsCompleted ?? 0}
+                    sub={r.overdueFollowUps > 0 ? `${r.overdueFollowUps} overdue` : `of ${target('FOLLOW_UPS')}`}
                     tone={r.overdueFollowUps > 0 ? 'warn' : 'default'}
-                    sub={r.overdueFollowUps > 0 ? `${r.overdueFollowUps} overdue` : undefined}
                   />
-                  <Stat label="Conversations" value={done?.conversations ?? 0} sub={`${done?.answeredCount ?? 0} answered`} />
-                  <Stat label="Interested" value={done?.interestedLeads ?? 0} tone="good" />
+                  <Stat
+                    label="Talked to"
+                    value={done?.conversations ?? 0}
+                    sub={`${done?.answeredCount ?? 0} answered`}
+                  />
+                  <Stat label="Interested" value={done?.interestedLeads ?? 0} sub="this week" tone="good" />
                   <Stat
                     label="Meetings"
-                    value={`${done?.meetingsBooked ?? 0}/${target('MEETINGS')}`}
+                    value={done?.meetingsBooked ?? 0}
                     sub={`${done?.meetingInvitesSent ?? 0} invites sent`}
                     tone={(done?.meetingsBooked ?? 0) > 0 ? 'good' : 'default'}
                   />
-                </div>
+                </StatRow>
 
-                <div className="grid gap-4 border-t border-ink-200 p-4 sm:grid-cols-3">
+                <div className="grid gap-6 border-t border-hairline px-6 py-5 sm:grid-cols-3">
                   <Progress label="Paid hours" value={r.completedHours} max={r.scheduledHours || 8} />
                   <Progress
                     label="Contact target"
@@ -136,139 +150,127 @@ export default async function OverviewPage() {
                   />
                 </div>
 
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-ink-200 px-4 py-3 text-sm">
-                  <div>
-                    <span className="text-ink-500">Weekly score </span>
-                    <span className="tnum font-semibold text-ink-900">{score ?? '—'}</span>
-                    {lastScore !== null && (
-                      <span className="ml-1 text-xs text-ink-500">
-                        (last week {lastScore}
-                        {score !== null && (
-                          <span className={score >= lastScore ? ' text-emerald-600' : ' text-red-600'}>
-                            {' '}
-                            {score >= lastScore ? '▲' : '▼'} {Math.abs(score - lastScore)}
-                          </span>
-                        )}
-                        )
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <span className="text-ink-500">Cost this week </span>
-                    <span className="tnum font-semibold text-ink-900">
-                      {formatMoney(r.scorecard?.cost.salespersonCostCents ?? null)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-ink-500">Cost per conversation </span>
-                    <span className="tnum font-semibold text-ink-900">
-                      {r.scorecard?.cost.costPerConversationCents
-                        ? formatMoney(r.scorecard.cost.costPerConversationCents)
-                        : '—'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-ink-500">Cost per meeting </span>
-                    <span className="tnum font-semibold text-ink-900">
-                      {r.scorecard?.cost.costPerMeetingCents
-                        ? formatMoney(r.scorecard.cost.costPerMeetingCents)
-                        : '—'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-ink-500">Attributed revenue </span>
-                    <span className="tnum font-semibold text-ink-900">
-                      {r.scorecard?.cost.attributedRevenueCents
+                {/* Is the money working? */}
+                <div className="flex flex-wrap gap-x-10 gap-y-4 border-t border-hairline bg-ink-50 px-6 py-5">
+                  <Metric
+                    label="Weekly score"
+                    value={score ?? '—'}
+                    hint={
+                      delta !== null
+                        ? `${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta)} vs last week`
+                        : 'no previous week'
+                    }
+                    tone={delta === null ? 'flat' : delta >= 0 ? 'up' : 'down'}
+                  />
+                  <Metric label="Cost this week" value={formatMoney(r.scorecard?.cost.salespersonCostCents ?? null)} />
+                  <Metric
+                    label="Per conversation"
+                    value={r.scorecard?.cost.costPerConversationCents ? formatMoney(r.scorecard.cost.costPerConversationCents) : '—'}
+                  />
+                  <Metric
+                    label="Per meeting"
+                    value={r.scorecard?.cost.costPerMeetingCents ? formatMoney(r.scorecard.cost.costPerMeetingCents) : '—'}
+                  />
+                  <Metric
+                    label="Attributed revenue"
+                    value={
+                      r.scorecard?.cost.attributedRevenueCents
                         ? formatMoney(r.scorecard.cost.attributedRevenueCents)
-                        : 'None linked'}
-                    </span>
-                  </div>
+                        : 'None linked'
+                    }
+                  />
                   {r.unfinished > 0 && (
-                    <Badge tone="warn">{r.unfinished} untouched leads</Badge>
+                    <div className="self-center">
+                      <Badge tone="warn">{r.unfinished} leads untouched</Badge>
+                    </div>
                   )}
                 </div>
 
                 {r.lastActivity && (
-                  <div className="border-t border-ink-200 px-4 py-2 text-xs text-ink-500">
-                    Last meaningful activity: {ACTIVITY_LABELS[r.lastActivity.kind]}
+                  <div className="border-t border-hairline px-6 py-3 text-[12px] text-ink-500">
+                    Last action: {ACTIVITY_LABELS[r.lastActivity.kind]}
                     {r.lastActivity.ticket && ` — ${r.lastActivity.ticket.company.name}`} ·{' '}
                     {formatInTz(r.lastActivity.occurredAt, tz)}
                   </div>
                 )}
+              </Card>
 
-                {/* Monthly target progress — the spec's "is the month on track" view. */}
-                <div className="border-t border-ink-200 p-4">
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">
-                    {r.monthlyProgress.label} progress
-                  </h3>
+              {/* --- Monthly pressure ------------------------------------- */}
+              <div className="grid gap-6 lg:grid-cols-3">
+                <Card title={`${r.monthlyProgress.label}`} subtitle="Month to date against target" className="lg:col-span-2">
                   {r.monthlyProgress.targets.every((t) => t.target === 0) ? (
-                    <p className="text-sm text-ink-400">
-                      No monthly targets yet — they are summed from the weekly plans as sprints are created.
+                    <p className="px-6 py-6 text-[13px] text-ink-500">
+                      Monthly targets appear once weekly sprints exist — they are summed from the weeks that
+                      make up the month, so they can never exceed what the paid hours allow.
                     </p>
                   ) : (
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-5 px-6 py-5 sm:grid-cols-2 lg:grid-cols-3">
                       {r.monthlyProgress.targets
                         .filter((t) => t.target > 0)
                         .map((t) => (
                           <Progress
                             key={t.key}
-                            label={`${t.label}${t.isOverridden ? ' (overridden)' : ''}`}
+                            label={`${t.label}${t.isOverridden ? ' *' : ''}`}
                             value={t.achieved}
                             max={t.target}
                           />
                         ))}
                     </div>
                   )}
-                </div>
+                </Card>
 
-                {r.previousScorecards.length > 0 && (
-                  <div className="flex items-center gap-3 border-t border-ink-200 px-4 py-2">
-                    <span className="text-xs text-ink-500">Four-week trend</span>
-                    <div className="flex items-end gap-1">
+                <Card title="Four-week trend" subtitle="Weekly score">
+                  {r.previousScorecards.length === 0 ? (
+                    <p className="px-6 py-6 text-[13px] text-ink-500">No completed weeks yet.</p>
+                  ) : (
+                    <div className="flex items-end justify-center gap-5 px-6 py-6" style={{ height: 150 }}>
                       {[...r.previousScorecards].reverse().map((c) => (
-                        <div
-                          key={c.id}
-                          title={`${c.sprint.label}: ${c.totalScore}/100`}
-                          className="w-6 rounded-t bg-brand-500"
-                          style={{ height: `${Math.max(3, (c.totalScore / 100) * 32)}px` }}
-                        />
+                        <div key={c.id} className="flex w-14 flex-col items-center justify-end gap-2">
+                          <span className="tnum text-[12px] font-medium text-ink-700">{c.totalScore}</span>
+                          <div
+                            className="w-full rounded-md bg-brand-500 transition-all"
+                            style={{ height: `${Math.max(6, (c.totalScore / 100) * 84)}px` }}
+                            title={`${c.sprint.label}: ${c.totalScore}/100`}
+                          />
+                          <span className="text-[10px] text-ink-400">{c.sprint.label.slice(-3)}</span>
+                        </div>
                       ))}
                     </div>
-                  </div>
-                )}
-              </Card>
+                  )}
+                </Card>
+              </div>
             </div>
           );
         })
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <Card title="Lead supply">
-          <div className="grid grid-cols-2 gap-3 p-4">
+          <StatRow className="grid-cols-2">
             <Stat label="New qualified this week" value={data.newQualifiedLeads} />
             <Stat
               label="Awaiting your review"
               value={data.reviewQueueCount}
               tone={data.reviewQueueCount > 0 ? 'warn' : 'good'}
             />
-          </div>
+          </StatRow>
         </Card>
 
         <Card title="Recent activity" action={<LinkButton href="/live-activity" size="sm">See all</LinkButton>}>
           {activity.length === 0 ? (
             <EmptyState title="No activity recorded yet" />
           ) : (
-            <ul className="divide-y divide-ink-200 text-sm">
-              {activity.slice(0, 8).map((a) => (
-                <li key={a.id} className="flex items-center gap-2 px-4 py-2">
+            <ul className="divide-y divide-hairline">
+              {activity.slice(0, 7).map((a) => (
+                <li key={a.id} className="flex items-center gap-3 px-6 py-2.5">
                   <span
-                    className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white"
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white"
                     style={{ backgroundColor: a.user.avatarColor }}
                   >
                     {a.user.name.charAt(0)}
                   </span>
-                  <span className="flex-1 truncate text-ink-800">{a.summary}</span>
-                  <span className="shrink-0 text-xs text-ink-400">
+                  <span className="flex-1 truncate text-[13px] text-ink-700">{a.summary}</span>
+                  <span className="tnum shrink-0 text-[11px] text-ink-400">
                     {formatInTz(a.occurredAt, tz, { timeStyle: 'short' })}
                   </span>
                 </li>
@@ -277,6 +279,34 @@ export default async function OverviewPage() {
           )}
         </Card>
       </div>
+    </div>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  hint,
+  tone = 'flat',
+}: {
+  label: string;
+  value: React.ReactNode;
+  hint?: string;
+  tone?: 'up' | 'down' | 'flat';
+}) {
+  return (
+    <div>
+      <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-ink-500">{label}</div>
+      <div className="tnum mt-1 text-[19px] font-semibold leading-none text-ink-900">{value}</div>
+      {hint && (
+        <div
+          className={`mt-1 text-[11px] ${
+            tone === 'up' ? 'text-good-600' : tone === 'down' ? 'text-bad-600' : 'text-ink-500'
+          }`}
+        >
+          {hint}
+        </div>
+      )}
     </div>
   );
 }

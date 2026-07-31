@@ -10,7 +10,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
 
   return (
-    <form action={formAction} className="space-y-4 rounded-xl border border-ink-200 bg-white p-6 shadow-sm">
+    <form action={formAction} className="space-y-5 rounded-card border border-hairline bg-white p-7 shadow-card">
       <input type="hidden" name="next" value={nextPath ?? ''} />
 
       {state.error && <Alert tone="bad">{state.error}</Alert>}
@@ -36,11 +36,11 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
         />
       </Field>
 
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" size="lg" className="w-full" disabled={pending}>
         {pending ? 'Signing in…' : 'Sign in'}
       </Button>
 
-      <p className="text-center text-xs text-ink-500">
+      <p className="text-center text-[12px] text-ink-500">
         Access is by invitation only.
       </p>
     </form>

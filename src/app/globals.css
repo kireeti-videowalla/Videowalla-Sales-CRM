@@ -1,23 +1,60 @@
 @import 'tailwindcss';
 
+/* ---------------------------------------------------------------------------
+   Design tokens.
+
+   Restraint is the whole idea: one accent colour, a narrow neutral ramp, and
+   colour used only where it carries meaning (a status, a threshold crossed).
+   Everything else earns attention through type weight and whitespace instead.
+   --------------------------------------------------------------------------- */
+
 @theme {
-  --color-ink-50: #f8fafc;
-  --color-ink-100: #f1f5f9;
-  --color-ink-200: #e2e8f0;
-  --color-ink-300: #cbd5e1;
-  --color-ink-400: #94a3b8;
-  --color-ink-500: #64748b;
-  --color-ink-600: #475569;
-  --color-ink-700: #334155;
-  --color-ink-800: #1e293b;
-  --color-ink-900: #0f172a;
-  --color-brand-500: #2563eb;
-  --color-brand-600: #1d4ed8;
-  --color-brand-700: #1e40af;
+  /* Neutral ramp — warm, low-contrast greys. */
+  --color-ink-50: #fbfbfd;
+  --color-ink-100: #f5f5f7;
+  --color-ink-200: #e8e8ed;
+  --color-ink-300: #d2d2d7;
+  --color-ink-400: #a1a1a6;
+  --color-ink-500: #86868b;
+  --color-ink-600: #6e6e73;
+  --color-ink-700: #48484a;
+  --color-ink-800: #2c2c2e;
+  --color-ink-900: #1d1d1f;
+
+  /* Single accent. */
+  --color-brand-50: #f0f7ff;
+  --color-brand-100: #e3f0ff;
+  --color-brand-200: #bcdcff;
+  --color-brand-500: #0071e3;
+  --color-brand-600: #0071e3;
+  --color-brand-700: #0060c0;
+
+  /* Semantic — reserved for state, never decoration. */
+  --color-good-50: #ecfdf3;
+  --color-good-200: #a7e8c2;
+  --color-good-600: #1a8b4a;
+  --color-warn-50: #fff8ec;
+  --color-warn-200: #fde3b0;
+  --color-warn-600: #b25e02;
+  --color-bad-50: #fff1f0;
+  --color-bad-200: #ffc9c5;
+  --color-bad-600: #d70015;
+
+  --color-hairline: rgba(0, 0, 0, 0.07);
+
+  --radius-card: 16px;
+  --radius-control: 10px;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.03), 0 6px 20px -8px rgba(0, 0, 0, 0.08);
+  --shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.05), 0 12px 32px -12px rgba(0, 0, 0, 0.12);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI',
+    Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 :root {
   color-scheme: light;
+  --hairline: rgba(0, 0, 0, 0.07);
 }
 
 html,
@@ -26,26 +63,90 @@ body {
 }
 
 body {
-  background-color: var(--color-ink-50);
+  background-color: var(--color-ink-100);
   color: var(--color-ink-900);
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.011em;
 }
 
-/* Tabular figures keep counters and timers from jittering as they update. */
+/* Display type: tight tracking is what makes large text feel considered
+   rather than merely big. */
+h1,
+h2,
+.display {
+  letter-spacing: -0.022em;
+}
+
+.display-lg {
+  letter-spacing: -0.03em;
+}
+
+/* Numbers must not jitter as they update — the shift timer and every counter
+   depend on this. */
 .tnum {
   font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
 }
 
-/* Kanban drop target feedback. */
+.hairline {
+  border-color: var(--hairline);
+}
+
+/* Focus: visible and calm. Never removed — the salesperson may well be
+   keyboard-driven, and this is her primary tool. */
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: var(--color-brand-100);
+}
+
+/* Scrollbars: present, but quiet. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-300) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-ink-300);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-ink-400);
+}
+
+/* --- Kanban ------------------------------------------------------------- */
+
+.kanban-column {
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
 .kanban-column.drag-over {
-  outline: 2px dashed var(--color-brand-500);
-  outline-offset: -4px;
-  background-color: #eff6ff;
+  background-color: var(--color-brand-50);
+  box-shadow: inset 0 0 0 2px var(--color-brand-200);
 }
 
 .kanban-card {
   cursor: grab;
+  transition: transform 140ms cubic-bezier(0.25, 0.1, 0.25, 1), box-shadow 140ms ease;
+}
+
+.kanban-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05), 0 12px 32px -12px rgba(0, 0, 0, 0.12);
 }
 
 .kanban-card:active {
@@ -53,7 +154,25 @@ body {
 }
 
 .kanban-card.dragging {
-  opacity: 0.4;
+  opacity: 0.35;
+  transform: scale(0.98);
+}
+
+/* --- Motion ------------------------------------------------------------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 320ms cubic-bezier(0.25, 0.1, 0.25, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -61,6 +180,16 @@ body {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+  .no-print {
+    display: none !important;
   }
 }

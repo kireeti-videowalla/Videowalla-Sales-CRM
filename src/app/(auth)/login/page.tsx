@@ -23,9 +23,12 @@ export default async function LoginPage({
   return (
     <main className="flex min-h-screen items-center justify-center bg-ink-100 px-4 py-12">
       <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <h1 className="text-xl font-semibold text-ink-900">Videowalla</h1>
-          <p className="mt-1 text-sm text-ink-500">Sales Command Center</p>
+        <div className="mb-10 flex flex-col items-center text-center">
+          <span className="mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-ink-900 text-[13px] font-bold tracking-tight text-white">
+            VW
+          </span>
+          <h1 className="display-lg text-[26px] font-semibold text-ink-900">Videowalla</h1>
+          <p className="mt-1.5 text-[14px] text-ink-500">Sales Command Center</p>
         </div>
 
         {activeUsers === 0 ? (

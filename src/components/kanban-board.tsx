@@ -87,7 +87,7 @@ export function KanbanBoard({ columns, canMove }: { columns: KanbanColumn[]; can
         {columns.map((column) => (
           <div
             key={column.key}
-            className={`kanban-column flex w-72 shrink-0 flex-col rounded-xl border border-ink-200 bg-ink-100/60 ${
+            className={`kanban-column flex w-[280px] shrink-0 flex-col rounded-card border border-hairline bg-white/60 ${
               overColumn === column.key ? 'drag-over' : ''
             }`}
             onDragOver={(e) => {
@@ -101,17 +101,17 @@ export function KanbanBoard({ columns, canMove }: { columns: KanbanColumn[]; can
               handleDrop(column.key);
             }}
           >
-            <div className="flex items-center justify-between gap-2 border-b border-ink-200 px-3 py-2">
+            <div className="flex items-center justify-between gap-2 border-b border-hairline px-4 py-3">
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: column.color }} />
-                <span className="text-sm font-semibold text-ink-800">{column.name}</span>
+                <span className="display text-[13px] font-semibold text-ink-800">{column.name}</span>
               </div>
-              <span className="tnum text-xs text-ink-500">{column.total}</span>
+              <span className="tnum rounded-full bg-ink-100 px-2 py-0.5 text-[11px] text-ink-600">{column.total}</span>
             </div>
 
             <div className="flex-1 space-y-2 p-2">
               {column.cards.length === 0 && (
-                <p className="px-2 py-6 text-center text-xs text-ink-400">Empty</p>
+                <p className="px-2 py-10 text-center text-[12px] text-ink-400">Empty</p>
               )}
 
               {column.cards.map((card) => (
@@ -123,16 +123,16 @@ export function KanbanBoard({ columns, canMove }: { columns: KanbanColumn[]; can
                     setDraggingId(null);
                     setOverColumn(null);
                   }}
-                  className={`kanban-card rounded-lg border border-ink-200 bg-white p-3 shadow-sm ${
+                  className={`kanban-card rounded-xl border border-hairline bg-white p-3.5 shadow-card ${
                     draggingId === card.id ? 'dragging' : ''
                   } ${pending ? 'pointer-events-none opacity-70' : ''}`}
                 >
                   <Link href={`/leads/${card.id}`} className="block">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-sm font-medium text-ink-900">{card.companyName}</span>
-                      <span className="tnum shrink-0 text-xs font-semibold text-ink-500">{card.score}</span>
+                      <span className="text-[13px] font-medium leading-snug text-ink-900">{card.companyName}</span>
+                      <span className="tnum shrink-0 text-[12px] font-semibold text-ink-500">{card.score}</span>
                     </div>
-                    <p className="mt-0.5 line-clamp-2 text-xs text-ink-500">{card.headline}</p>
+                    <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-ink-500">{card.headline}</p>
                     <div className="mt-2 flex flex-wrap items-center gap-1">
                       {card.priority === 'PRIORITY' && <Badge tone="info">Priority</Badge>}
                       {card.isCarryover && <Badge tone="warn">Carryover</Badge>}
