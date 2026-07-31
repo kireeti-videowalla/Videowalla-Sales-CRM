@@ -275,7 +275,7 @@ model User {
   passwordHash String?
   timezone     String     @default("America/Toronto")
   phone        String?
-  avatarColor  String     @default("#2563eb")
+  avatarColor  String     @default("#6D4287")
   lastLoginAt  DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt

@@ -24,7 +24,7 @@ export default async function LoginPage({
     <main className="flex min-h-screen items-center justify-center bg-ink-100 px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-10 flex flex-col items-center text-center">
-          <span className="mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-ink-900 text-[13px] font-bold tracking-tight text-white">
+          <span className="mb-5 grid h-12 w-12 place-items-center rounded-2xl bg-brand-600 text-[14px] font-bold tracking-tight text-accent-400">
             VW
           </span>
           <h1 className="display-lg text-[26px] font-semibold text-ink-900">Videowalla</h1>
@@ -32,10 +32,10 @@ export default async function LoginPage({
         </div>
 
         {activeUsers === 0 ? (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+          <div className="rounded-card border border-accent-200 bg-accent-50 p-5 text-[13px] leading-relaxed text-ink-800">
             <p className="font-semibold">No accounts exist yet</p>
             <p className="mt-2">Create the owner account on the server:</p>
-            <pre className="mt-2 overflow-x-auto rounded bg-amber-100 px-3 py-2 text-xs">
+            <pre className="mt-2 overflow-x-auto rounded-control bg-white px-3 py-2 text-[12px]">
               npm run bootstrap:owner
             </pre>
             <p className="mt-2 text-xs">

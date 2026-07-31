@@ -60,7 +60,7 @@ export async function AppShell({
       <header className="sticky top-0 z-30 border-b border-hairline bg-white/80 backdrop-blur-xl backdrop-saturate-150">
         <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-4 px-4 sm:gap-5 sm:px-8">
           <Link href={nav[0]!.href} className="flex shrink-0 items-center gap-2.5">
-            <span className="grid h-7 w-7 place-items-center rounded-lg bg-ink-900 text-[10px] font-bold tracking-tight text-white">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-600 text-[10px] font-bold tracking-tight text-accent-400">
               VW
             </span>
             <span className="display hidden text-[14px] font-semibold text-ink-900 lg:block">

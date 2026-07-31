@@ -10,8 +10,8 @@
 
 @theme {
   /* Neutral ramp — warm, low-contrast greys. */
-  --color-ink-50: #fbfbfd;
-  --color-ink-100: #f5f5f7;
+  --color-ink-50: #fbfafc;
+  --color-ink-100: #f6f5f8;
   --color-ink-200: #e8e8ed;
   --color-ink-300: #d2d2d7;
   --color-ink-400: #a1a1a6;
@@ -21,13 +21,31 @@
   --color-ink-800: #2c2c2e;
   --color-ink-900: #1d1d1f;
 
-  /* Single accent. */
-  --color-brand-50: #f0f7ff;
-  --color-brand-100: #e3f0ff;
-  --color-brand-200: #bcdcff;
-  --color-brand-500: #0071e3;
-  --color-brand-600: #0071e3;
-  --color-brand-700: #0060c0;
+  /* Brand purple — sampled from the Videowalla logo (#6D4287 is the dominant
+     colour in the mark). This is the functional primary: buttons, active
+     navigation, links, progress. It clears contrast requirements on white. */
+  --color-brand-50: #f6f2f9;
+  --color-brand-100: #ebe3f0;
+  --color-brand-200: #d3c1de;
+  --color-brand-300: #b295c4;
+  --color-brand-400: #935ea5;
+  --color-brand-500: #7b4f94;
+  --color-brand-600: #6d4287;
+  --color-brand-700: #5a3670;
+  --color-brand-800: #472b58;
+  --color-brand-900: #33203f;
+
+  /* Brand yellow — #FFC62E from the logo. Used as an accent only: the mark,
+     highlights, small emphasis. Never as a background behind white text and
+     never as body text, because yellow on white fails contrast badly. Where it
+     carries text, the text is ink-900. */
+  --color-accent-50: #fff9e9;
+  --color-accent-100: #fff1c9;
+  --color-accent-200: #ffe291;
+  --color-accent-300: #ffd45c;
+  --color-accent-400: #ffc62e;
+  --color-accent-500: #f0b412;
+  --color-accent-600: #b8860a;
 
   /* Semantic — reserved for state, never decoration. */
   --color-good-50: #ecfdf3;
@@ -103,7 +121,7 @@ h2,
 }
 
 ::selection {
-  background: var(--color-brand-100);
+  background: var(--color-accent-200);
 }
 
 /* Scrollbars: present, but quiet. */

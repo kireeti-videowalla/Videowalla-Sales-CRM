@@ -17,7 +17,7 @@ export function NavLinks({ items }: { items: Array<{ href: string; label: string
             aria-current={active ? 'page' : undefined}
             className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] transition-colors duration-150 ${
               active
-                ? 'bg-ink-900 font-medium text-white'
+                ? 'bg-brand-600 font-medium text-white'
                 : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900'
             }`}
           >
