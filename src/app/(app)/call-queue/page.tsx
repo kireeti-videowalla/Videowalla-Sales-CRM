@@ -3,7 +3,7 @@ import { requireRole } from '@/lib/auth/session';
 import { getThisWeek } from '@/lib/workspace/this-week';
 import { formatPhone } from '@/lib/normalize';
 import { DEFAULT_TIMEZONE, formatInTz } from '@/lib/time';
-import { Alert, Badge, Card, EmptyState } from '@/components/ui';
+import { Alert, Badge, Card, EmptyState , PageHeader } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,12 +18,7 @@ export default async function CallQueuePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-ink-900">Call Queue</h1>
-        <p className="mt-0.5 text-sm text-ink-500">
-          Work from the top. Commitments come before new companies.
-        </p>
-      </div>
+      <PageHeader title="Call Queue" subtitle={<>Work from the top. Commitments come before new companies.</>} />
 
       {!data.shift.isActive && !data.shift.isPaused && (
         <Alert tone="warn" title="Your shift is not running">
@@ -46,7 +41,7 @@ export default async function CallQueuePage() {
           title={`Follow-ups (${followUpQueue.length})`}
           subtitle="Promises already made. These come first."
         >
-          <ul className="divide-y divide-ink-200">
+          <ul className="divide-y divide-hairline">
             {followUpQueue.map((f) => (
               <li key={f.id}>
                 <Link href={`/leads/${f.ticketId}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3 hover:bg-ink-50">
@@ -80,7 +75,7 @@ export default async function CallQueuePage() {
           title={`Interested leads (${interestedQueue.length})`}
           subtitle="They said yes to something. Keep them moving."
         >
-          <ul className="divide-y divide-ink-200">
+          <ul className="divide-y divide-hairline">
             {interestedQueue.map((t) => (
               <li key={t.id}>
                 <Link href={`/leads/${t.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3 hover:bg-ink-50">
@@ -108,7 +103,7 @@ export default async function CallQueuePage() {
           title={`New companies (${newLeadQueue.length})`}
           subtitle="Prepared for you before the week started. Highest scoring first."
         >
-          <ul className="divide-y divide-ink-200">
+          <ul className="divide-y divide-hairline">
             {newLeadQueue.map((t) => (
               <li key={t.id}>
                 <Link href={`/leads/${t.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3 hover:bg-ink-50">

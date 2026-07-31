@@ -58,7 +58,7 @@ export default async function DiscoverySettingsPage() {
             lastError: s.lastError,
           }))}
         />
-        <div className="border-t border-ink-200">
+        <div className="border-t border-hairline">
           <RunIngestionPanel sources={sources.map((s) => ({ key: s.key, name: s.name }))} />
         </div>
       </Card>
@@ -92,7 +92,7 @@ export default async function DiscoverySettingsPage() {
             detail: l.latitude ? `${l.radiusKm}km radius` : 'no coordinates — not searchable',
           }))}
         />
-        <div className="border-t border-ink-200">
+        <div className="border-t border-hairline">
           <AddLocationForm />
         </div>
       </Card>
@@ -108,7 +108,7 @@ export default async function DiscoverySettingsPage() {
             detail: i.keywords.slice(0, 2).join(', '),
           }))}
         />
-        <div className="border-t border-ink-200">
+        <div className="border-t border-hairline">
           <AddIndustryForm />
         </div>
       </Card>

@@ -5,7 +5,7 @@ import { formatPhone } from '@/lib/normalize';
 import { buildLeadWhere } from '@/lib/leads/filters';
 import { DEFAULT_TIMEZONE, formatInTz } from '@/lib/time';
 import { bandLabel } from '@/lib/pipeline/scoring';
-import { Badge, Card, EmptyState, LinkButton, inputClass } from '@/components/ui';
+import { Badge, Card, EmptyState, LinkButton, inputClass , PageHeader } from '@/components/ui';
 import { ManualUrlPanel } from '@/components/leads-panels';
 
 export const dynamic = 'force-dynamic';
@@ -64,12 +64,7 @@ export default async function LeadsPage({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink-900">Leads</h1>
-          <p className="mt-0.5 text-sm text-ink-500">{total} matching lead{total === 1 ? '' : 's'}</p>
-        </div>
-      </div>
+      <PageHeader title="Leads" subtitle={<>{total} matching lead{total === 1 ? '' : 's'}</>} />
 
       {/* --- Filters (GET form so they are shareable URLs) --------------- */}
       <Card title="Filters">
@@ -260,7 +255,7 @@ export default async function LeadsPage({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-sm">
-              <thead className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
+              <thead className="border-b border-hairline text-left text-xs uppercase tracking-wide text-ink-500">
                 <tr>
                   <th className="px-4 py-2 font-medium">Company</th>
                   <th className="px-4 py-2 font-medium">Opportunity</th>
@@ -270,7 +265,7 @@ export default async function LeadsPage({
                   <th className="px-4 py-2 text-right font-medium">Score</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-200">
+              <tbody className="divide-y divide-hairline">
                 {tickets.map((t) => (
                   <tr key={t.id} className="hover:bg-ink-50">
                     <td className="px-4 py-2">
@@ -316,7 +311,7 @@ export default async function LeadsPage({
         )}
 
         {pages > 1 && (
-          <div className="flex items-center justify-between border-t border-ink-200 px-4 py-3 text-sm">
+          <div className="flex items-center justify-between border-t border-hairline px-4 py-3 text-sm">
             <span className="text-ink-500">
               Page {page} of {pages}
             </span>

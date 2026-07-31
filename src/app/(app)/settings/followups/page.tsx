@@ -46,7 +46,7 @@ export default async function FollowUpSettingsPage() {
       <Card title="Contact outcomes" subtitle="What the salesperson can choose after a call, and what each triggers.">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-sm">
-            <thead className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
+            <thead className="border-b border-hairline text-left text-xs uppercase tracking-wide text-ink-500">
               <tr>
                 <th className="px-5 py-2 font-medium">Outcome</th>
                 <th className="px-5 py-2 font-medium">Moves to</th>
@@ -54,7 +54,7 @@ export default async function FollowUpSettingsPage() {
                 <th className="px-5 py-2 font-medium">Requires</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink-200">
+            <tbody className="divide-y divide-hairline">
               {outcomes.map((o) => (
                 <tr key={o.id}>
                   <td className="px-5 py-2 text-ink-900">{o.label}</td>

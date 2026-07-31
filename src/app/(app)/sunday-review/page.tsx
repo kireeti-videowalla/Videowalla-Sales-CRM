@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { buildWeeklyReport } from '@/lib/reports/service';
 import { listReviewQueue } from '@/lib/pipeline/review';
 import { DEFAULT_TIMEZONE, formatInTz } from '@/lib/time';
-import { Alert, Badge, Card, EmptyState, Progress, Stat, formatMoney, formatPercent } from '@/components/ui';
+import { Alert, Badge, Card, EmptyState, Progress, Stat, formatMoney, formatPercent , PageHeader } from '@/components/ui';
 import { ApproveSprintPanel, ReplanPanel, ReviewExceptionsPanel } from '@/components/sprint-panels';
 
 export const dynamic = 'force-dynamic';
@@ -47,12 +47,7 @@ export default async function SundayReviewPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-ink-900">Sunday Review</h1>
-        <p className="mt-0.5 text-sm text-ink-500">
-          The whole week in about two minutes, then approve what happens next.
-        </p>
-      </div>
+      <PageHeader title="Sunday Review" subtitle={<>The whole week in about two minutes, then approve what happens next.</>} />
 
       {planning?.warnings && planning.warnings.length > 0 && (
         <Alert tone="warn" title="Planning warnings">
@@ -113,7 +108,7 @@ export default async function SundayReviewPage() {
               </div>
 
               {/* Score breakdown — every point explained. */}
-              <div className="border-t border-ink-200 p-4">
+              <div className="border-t border-hairline p-4">
                 <h3 className="mb-3 text-sm font-semibold text-ink-800">How the score was calculated</h3>
                 <ul className="space-y-2">
                   {report.scorecard.breakdown.map((c) => (
@@ -132,7 +127,7 @@ export default async function SundayReviewPage() {
               </div>
 
               {/* Cost and return. */}
-              <div className="flex flex-wrap gap-x-8 gap-y-2 border-t border-ink-200 px-4 py-3 text-sm">
+              <div className="flex flex-wrap gap-x-8 gap-y-2 border-t border-hairline px-4 py-3 text-sm">
                 <Metric label="Salesperson cost" value={formatMoney(report.scorecard.cost.salespersonCostCents)} />
                 <Metric label="Cost per contact" value={formatMoney(report.scorecard.cost.costPerContactCents)} />
                 <Metric label="Cost per conversation" value={formatMoney(report.scorecard.cost.costPerConversationCents)} />
@@ -150,7 +145,7 @@ export default async function SundayReviewPage() {
               </div>
 
               {report.comparison && (
-                <div className="border-t border-ink-200 px-4 py-3 text-sm text-ink-600">
+                <div className="border-t border-hairline px-4 py-3 text-sm text-ink-600">
                   Versus last week: score {report.comparison.scoreDelta >= 0 ? '+' : ''}
                   {report.comparison.scoreDelta}, contacts {report.comparison.contactsDelta >= 0 ? '+' : ''}
                   {report.comparison.contactsDelta}, meetings {report.comparison.meetingsDelta >= 0 ? '+' : ''}
@@ -159,14 +154,14 @@ export default async function SundayReviewPage() {
               )}
 
               {/* What performed. */}
-              <div className="grid gap-4 border-t border-ink-200 p-4 sm:grid-cols-3">
+              <div className="grid gap-4 border-t border-hairline p-4 sm:grid-cols-3">
                 <PerfList title="Best industries" rows={report.performance.byIndustry} />
                 <PerfList title="Best locations" rows={report.performance.byLocation} />
                 <PerfList title="Best lead sources" rows={report.performance.bySource} />
               </div>
 
               {m.unfinishedTasks > 0 && (
-                <div className="border-t border-ink-200 px-4 py-3">
+                <div className="border-t border-hairline px-4 py-3">
                   <Alert tone="warn" title={`${m.unfinishedTasks} leads were never attempted`}>
                     They carry into next week automatically.
                   </Alert>
@@ -187,7 +182,7 @@ export default async function SundayReviewPage() {
         }
       >
         {planning && (
-          <div className="grid grid-cols-2 gap-3 border-b border-ink-200 p-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 border-b border-hairline p-4 sm:grid-cols-4">
             <Stat label="New leads found" value={planning.ingestion?.created ?? 0} />
             <Stat label="Tickets created" value={planning.processing?.created ?? 0} />
             <Stat
@@ -206,7 +201,7 @@ export default async function SundayReviewPage() {
           />
         ) : (
           proposedSprints.map((sprint) => (
-            <div key={sprint.id} className="border-b border-ink-200 last:border-b-0">
+            <div key={sprint.id} className="border-b border-hairline last:border-b-0">
               <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4">
                 <h3 className="text-sm font-semibold text-ink-900">
                   {sprint.user.name} — week {sprint.label} ({sprint.availableHours}h)
@@ -263,14 +258,14 @@ export default async function SundayReviewPage() {
 
       {planning?.ingestion?.errors && planning.ingestion.errors.length > 0 && (
         <Card title="Lead source problems">
-          <ul className="divide-y divide-ink-200 text-sm">
+          <ul className="divide-y divide-hairline text-sm">
             {planning.ingestion.errors.map((e, i) => (
               <li key={i} className="px-5 py-2 text-amber-800">
                 {e}
               </li>
             ))}
           </ul>
-          <p className="border-t border-ink-200 px-5 py-2 text-xs text-ink-500">
+          <p className="border-t border-hairline px-5 py-2 text-xs text-ink-500">
             <Link href="/settings/integrations" className="text-brand-600 hover:underline">
               Check your integrations
             </Link>

@@ -49,7 +49,7 @@ export function StageEditor({ stages }: { stages: StageRow[] }) {
       </p>
 
       <form action={saveAction} className="space-y-2">
-        <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
+        <ul className="divide-y divide-hairline rounded-lg border border-hairline">
           {stages.map((s) => (
             <li key={s.id} className="px-3 py-2">
               <div className="flex flex-wrap items-center gap-2">
@@ -123,7 +123,7 @@ export function StageEditor({ stages }: { stages: StageRow[] }) {
         </Button>
       </form>
 
-      <div className="rounded-lg border border-ink-200 bg-ink-50 p-3">
+      <div className="rounded-lg border border-hairline bg-ink-50 p-3">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-500">Add a column</h4>
         {addState.error && <Alert tone="bad">{addState.error}</Alert>}
         {addState.ok && <Alert tone="good">{addState.message}</Alert>}
@@ -259,7 +259,7 @@ export function OutcomeEditor({
                 <th className="px-2 py-1 font-medium">Shown</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink-200">
+            <tbody className="divide-y divide-hairline">
               {outcomes.map((o) => (
                 <tr key={o.id}>
                   <td className="px-2 py-1.5">
@@ -324,7 +324,7 @@ export function OutcomeEditor({
         </Button>
       </form>
 
-      <div className="rounded-lg border border-ink-200 bg-ink-50 p-3">
+      <div className="rounded-lg border border-hairline bg-ink-50 p-3">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-500">Add an outcome</h4>
         {addState.error && <Alert tone="bad">{addState.error}</Alert>}
         {addState.ok && <Alert tone="good">{addState.message}</Alert>}

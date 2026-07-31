@@ -2,6 +2,7 @@ import { requireUser } from '@/lib/auth/session';
 import { can } from '@/lib/auth/rbac';
 import { prisma } from '@/lib/db';
 import { KanbanBoard, type KanbanColumn } from '@/components/kanban-board';
+import { PageHeader } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,15 +63,12 @@ export default async function PipelinePage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold text-ink-900">
-          {user.role === 'SALES_REP' ? 'Your Kanban board' : 'Pipeline'}
-        </h1>
-        <p className="mt-0.5 text-sm text-ink-500">
-          {totalTickets} ticket{totalTickets === 1 ? '' : 's'}
-          {canMove ? ' · drag a card to move it between stages' : ''}
-        </p>
-      </div>
+      <PageHeader
+        title={user.role === 'SALES_REP' ? 'Your board' : 'Pipeline'}
+        subtitle={`${totalTickets} ticket${totalTickets === 1 ? '' : 's'}${
+          canMove ? ' · drag a card to move it between stages' : ''
+        }`}
+      />
 
       <KanbanBoard columns={columns} canMove={canMove} />
     </div>

@@ -162,7 +162,7 @@ export function KeywordManager({
         </Button>
       </form>
 
-      <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
+      <ul className="divide-y divide-hairline rounded-lg border border-hairline">
         {keywords.map((k) => (
           <li key={k.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
             <span className={k.isActive ? 'text-ink-900' : 'text-ink-400 line-through'}>{k.term}</span>
@@ -215,7 +215,7 @@ export function PriorityList({
 
       <form action={formAction} className="space-y-2">
         <input type="hidden" name="kind" value={kind} />
-        <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
+        <ul className="divide-y divide-hairline rounded-lg border border-hairline">
           {items.map((item) => (
             <li key={item.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
               <input
@@ -352,7 +352,7 @@ export function ScoringEditor({
         exactly 100 — but keeping them there makes the numbers easier to reason about.
       </p>
 
-      <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
+      <ul className="divide-y divide-hairline rounded-lg border border-hairline">
         {factors.map((f) => (
           <li key={f.key} className="flex flex-wrap items-center gap-3 px-3 py-2">
             <input
@@ -411,7 +411,7 @@ export function FollowUpRulesEditor({
       {state.error && <Alert tone="bad">{state.error}</Alert>}
       {state.ok && <Alert tone="good">{state.message}</Alert>}
 
-      <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
+      <ul className="divide-y divide-hairline rounded-lg border border-hairline">
         {rules.map((r) => (
           <li key={r.id} className="flex flex-wrap items-center gap-3 px-3 py-2 text-sm">
             <input
@@ -487,8 +487,8 @@ export function IntegrationCard({
     status === 'CONNECTED' ? 'good' : status === 'ERROR' ? 'bad' : status === 'NOT_CONFIGURED' ? 'neutral' : 'warn';
 
   return (
-    <div className="rounded-xl border border-ink-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-ink-200 px-5 py-3">
+    <div className="rounded-card border border-hairline bg-white shadow-card">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-hairline px-5 py-3">
         <div>
           <h3 className="text-sm font-semibold text-ink-900">{title}</h3>
           <p className="mt-0.5 text-xs text-ink-500">{description}</p>
@@ -592,7 +592,7 @@ export function ScheduleEditor({
       {state.error && <Alert tone="bad">{state.error}</Alert>}
       {state.ok && <Alert tone="good">{state.message}</Alert>}
 
-      <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
+      <ul className="divide-y divide-hairline rounded-lg border border-hairline">
         {schedules.map((s) => (
           <li key={s.id} className="px-3 py-3">
             <form action={formAction} className="flex flex-wrap items-end gap-2">
@@ -648,7 +648,7 @@ export function DeadJobList({
       {state.error && <Alert tone="bad">{state.error}</Alert>}
       {state.ok && <Alert tone="good">{state.message}</Alert>}
 
-      <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
+      <ul className="divide-y divide-hairline rounded-lg border border-hairline">
         {jobs.map((j) => (
           <li key={j.id} className="flex flex-wrap items-center gap-3 px-3 py-2 text-sm">
             <div className="min-w-[220px] flex-1">
@@ -687,7 +687,7 @@ export function SourceToggleList({
   const [, startTransition] = useTransition();
 
   return (
-    <ul className="divide-y divide-ink-200">
+    <ul className="divide-y divide-hairline">
       {sources.map((s) => (
         <li key={s.id} className="flex flex-wrap items-center gap-3 px-5 py-2 text-sm">
           <div className="min-w-[220px] flex-1">

@@ -168,7 +168,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             </div>
 
             {company.contacts.length > 1 && (
-              <div className="border-t border-ink-200 px-5 py-3">
+              <div className="border-t border-hairline px-5 py-3">
                 <div className="text-xs uppercase tracking-wide text-ink-500">Other contacts</div>
                 <ul className="mt-1 space-y-1">
                   {company.contacts.slice(1).map((c) => (
@@ -239,7 +239,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             {ticket.attempts.length === 0 ? (
               <p className="px-5 py-4 text-sm text-ink-500">No contact has been attempted yet.</p>
             ) : (
-              <ul className="divide-y divide-ink-200">
+              <ul className="divide-y divide-hairline">
                 {ticket.attempts.map((a) => (
                   <li key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3 text-sm">
                     <Badge tone={a.isConversation ? 'good' : 'neutral'}>{a.outcome.label}</Badge>
@@ -264,7 +264,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             {ticket.notes.length === 0 ? (
               <p className="px-5 pb-4 text-sm text-ink-500">No notes yet.</p>
             ) : (
-              <ul className="divide-y divide-ink-200 border-t border-ink-200">
+              <ul className="divide-y divide-hairline border-t border-hairline">
                 {ticket.notes.map((n) => (
                   <li key={n.id} className="px-5 py-3">
                     <div className="flex items-center gap-2 text-xs text-ink-500">
@@ -338,7 +338,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
           )}
 
           <Card title="The company">
-            <dl className="divide-y divide-ink-200 text-sm">
+            <dl className="divide-y divide-hairline text-sm">
               <Row label="Industry" value={company.industry?.name ?? company.industryLabel ?? '—'} />
               <Row
                 label="Location"
@@ -404,7 +404,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
 
           {/* 7. Original source, always preserved. */}
           <Card title="Where this came from">
-            <dl className="divide-y divide-ink-200 text-sm">
+            <dl className="divide-y divide-hairline text-sm">
               <Row label="Source" value={opp.sourceRecord?.kind.replace(/_/g, ' ').toLowerCase() ?? 'manual'} />
               {opp.sourceRecord?.subject && <Row label="Subject" value={opp.sourceRecord.subject} />}
               {opp.jobPosting?.postedAt && (
@@ -443,7 +443,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
           </Card>
 
           <Card title={`Score: ${ticket.score}/100`} subtitle={score?.explanation ?? undefined}>
-            <ul className="divide-y divide-ink-200 text-sm">
+            <ul className="divide-y divide-hairline text-sm">
               {breakdown.map((f) => (
                 <li key={f.key} className="px-5 py-2">
                   <div className="flex items-baseline justify-between gap-2">
@@ -457,7 +457,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
               ))}
             </ul>
             {score && (
-              <p className="border-t border-ink-200 px-5 py-2 text-xs text-ink-500">
+              <p className="border-t border-hairline px-5 py-2 text-xs text-ink-500">
                 Data confidence {Math.round(score.dataConfidence * 100)}% — the remainder rests on estimates.
               </p>
             )}
@@ -482,7 +482,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
 
           {ticket.meetings.length > 0 && (
             <Card title="Meetings">
-              <ul className="divide-y divide-ink-200 text-sm">
+              <ul className="divide-y divide-hairline text-sm">
                 {ticket.meetings.map((m) => (
                   <li key={m.id} className="px-5 py-3">
                     <div className="flex items-center justify-between gap-2">
@@ -509,7 +509,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
           )}
 
           <Card title="History" subtitle="Immutable — every movement is kept.">
-            <ul className="divide-y divide-ink-200 text-sm">
+            <ul className="divide-y divide-hairline text-sm">
               {ticket.stageHistory.slice(0, 12).map((h) => (
                 <li key={h.id} className="px-5 py-2">
                   <div className="text-ink-800">

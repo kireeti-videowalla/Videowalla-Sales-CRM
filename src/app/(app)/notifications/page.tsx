@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requireUser } from '@/lib/auth/session';
 import { listNotifications } from '@/lib/notifications/service';
 import { DEFAULT_TIMEZONE, formatInTz } from '@/lib/time';
-import { Badge, Card, EmptyState } from '@/components/ui';
+import { Badge, Card, EmptyState , PageHeader } from '@/components/ui';
 import { MarkAllReadButton } from '@/components/notification-panels';
 
 export const dynamic = 'force-dynamic';
@@ -16,12 +16,7 @@ export default async function NotificationsPage() {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink-900">Alerts</h1>
-          <p className="mt-0.5 text-sm text-ink-500">
-            {unread} unread of {notifications.length}
-          </p>
-        </div>
+        <PageHeader title="Alerts" subtitle={<>{unread} unread of {notifications.length}</>} />
         {unread > 0 && <MarkAllReadButton />}
       </div>
 
@@ -29,7 +24,7 @@ export default async function NotificationsPage() {
         {notifications.length === 0 ? (
           <EmptyState title="No alerts yet" body="Shift, target, lead and integration alerts appear here." />
         ) : (
-          <ul className="divide-y divide-ink-200">
+          <ul className="divide-y divide-hairline">
             {notifications.map((n) => {
               const body = (
                 <div className={`px-5 py-3 ${n.readAt ? '' : 'bg-blue-50/50'}`}>

@@ -2,7 +2,7 @@ import { requireRole } from '@/lib/auth/session';
 import { prisma } from '@/lib/db';
 import { ROLE_LABELS } from '@/lib/auth/rbac';
 import { DEFAULT_TIMEZONE, formatInTz } from '@/lib/time';
-import { Badge, Card, EmptyState, formatMoney } from '@/components/ui';
+import { Badge, Card, EmptyState, formatMoney , PageHeader } from '@/components/ui';
 import {
   CompensationPanel,
   InvitePanel,
@@ -32,12 +32,7 @@ export default async function TeamPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-ink-900">Team</h1>
-        <p className="mt-0.5 text-sm text-ink-500">
-          Access is invitation-only. There is no public sign-up.
-        </p>
-      </div>
+      <PageHeader title="Team" subtitle={<>Access is invitation-only. There is no public sign-up.</>} />
 
       <Card title="Invite someone">
         <InvitePanel />
@@ -45,7 +40,7 @@ export default async function TeamPage() {
 
       {pendingInvites.length > 0 && (
         <Card title={`Pending invitations (${pendingInvites.length})`}>
-          <ul className="divide-y divide-ink-200 text-sm">
+          <ul className="divide-y divide-hairline text-sm">
             {pendingInvites.map((i) => (
               <li key={i.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2">
                 <span className="font-medium text-ink-900">{i.name}</span>
@@ -95,8 +90,8 @@ export default async function TeamPage() {
               </div>
 
               {u.role === 'SALES_REP' && (
-                <div className="grid gap-0 border-t border-ink-200 lg:grid-cols-2">
-                  <div className="border-b border-ink-200 lg:border-b-0 lg:border-r">
+                <div className="grid gap-0 border-t border-hairline lg:grid-cols-2">
+                  <div className="border-b border-hairline lg:border-b-0 lg:border-r">
                     <h3 className="px-5 pt-4 text-sm font-semibold text-ink-800">Working schedule</h3>
                     <SchedulePanel
                       userId={u.id}

@@ -73,7 +73,7 @@ export default async function AutomationSettingsPage() {
       <Card title="Recent jobs">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[620px] text-sm">
-            <thead className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
+            <thead className="border-b border-hairline text-left text-xs uppercase tracking-wide text-ink-500">
               <tr>
                 <th className="px-5 py-2 font-medium">Job</th>
                 <th className="px-5 py-2 font-medium">Status</th>
@@ -81,7 +81,7 @@ export default async function AutomationSettingsPage() {
                 <th className="px-5 py-2 font-medium">Updated</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink-200">
+            <tbody className="divide-y divide-hairline">
               {recentJobs.map((j) => (
                 <tr key={j.id}>
                   <td className="px-5 py-2 text-ink-800">{j.name}</td>
@@ -111,7 +111,7 @@ export default async function AutomationSettingsPage() {
 
       {failures.length > 0 && (
         <Card title="Integration failures">
-          <ul className="divide-y divide-ink-200 text-sm">
+          <ul className="divide-y divide-hairline text-sm">
             {failures.map((f) => (
               <li key={f.id} className="px-5 py-2">
                 <div className="text-ink-800">{f.kind}</div>

@@ -3,7 +3,7 @@ import { requireUser } from '@/lib/auth/session';
 import { listFollowUps } from '@/lib/followups/service';
 import { formatPhone } from '@/lib/normalize';
 import { DEFAULT_TIMEZONE, formatInTz } from '@/lib/time';
-import { Badge, Card, EmptyState, Stat } from '@/components/ui';
+import { Badge, Card, EmptyState, Stat , PageHeader } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,12 +23,7 @@ export default async function FollowUpsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-ink-900">Follow-Ups</h1>
-        <p className="mt-0.5 text-sm text-ink-500">
-          Created automatically from your outcomes. Nothing here is ever dropped silently.
-        </p>
-      </div>
+      <PageHeader title="Follow-Ups" subtitle={<>Created automatically from your outcomes. Nothing here is ever dropped silently.</>} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Overdue" value={overdue.length} tone={overdue.length ? 'bad' : 'good'} />
@@ -54,7 +49,7 @@ export default async function FollowUpsPage() {
             .filter((g) => g.items.length > 0)
             .map((group) => (
               <Card key={group.title} title={`${group.title} (${group.items.length})`}>
-                <ul className="divide-y divide-ink-200">
+                <ul className="divide-y divide-hairline">
                   {group.items.map((f) => (
                     <li key={f.id}>
                       <Link

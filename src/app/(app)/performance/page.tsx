@@ -2,7 +2,7 @@ import { requireRole } from '@/lib/auth/session';
 import { prisma } from '@/lib/db';
 import { getThisWeek } from '@/lib/workspace/this-week';
 import { DEFAULT_TIMEZONE, formatInTz } from '@/lib/time';
-import { Alert, Badge, Card, EmptyState, Progress, Stat } from '@/components/ui';
+import { Alert, Badge, Card, EmptyState, Progress, Stat , PageHeader } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,12 +24,7 @@ export default async function PerformancePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-ink-900">Performance</h1>
-        <p className="mt-0.5 text-sm text-ink-500">
-          Every point is calculated from recorded work. There is no subjective judgement in this score.
-        </p>
-      </div>
+      <PageHeader title="Performance" subtitle={<>Every point is calculated from recorded work. There is no subjective judgement in this score.</>} />
 
       {!current ? (
         <Card>
@@ -61,7 +56,7 @@ export default async function PerformancePage() {
           </div>
 
           <Card title="Where your points came from">
-            <ul className="divide-y divide-ink-200">
+            <ul className="divide-y divide-hairline">
               {current.breakdown.map((c: Category) => {
                 const missing = Number((c.weight - c.awarded).toFixed(1));
                 return (
@@ -111,7 +106,7 @@ export default async function PerformancePage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">
-              <thead className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
+              <thead className="border-b border-hairline text-left text-xs uppercase tracking-wide text-ink-500">
                 <tr>
                   <th className="px-4 py-2 font-medium">Week</th>
                   <th className="px-4 py-2 text-right font-medium">Score</th>
@@ -123,7 +118,7 @@ export default async function PerformancePage() {
                   <th className="px-4 py-2 text-right font-medium">Meetings</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-200">
+              <tbody className="divide-y divide-hairline">
                 {history.map((h) => (
                   <tr key={h.id}>
                     <td className="px-4 py-2">

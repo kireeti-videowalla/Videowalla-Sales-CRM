@@ -2,7 +2,7 @@ import { requireRole } from '@/lib/auth/session';
 import { prisma } from '@/lib/db';
 import { buildMonthlyReport } from '@/lib/reports/service';
 import { DEFAULT_TIMEZONE, formatInTz } from '@/lib/time';
-import { Badge, Card, EmptyState, Stat, formatMoney, formatPercent } from '@/components/ui';
+import { Badge, Card, EmptyState, Stat, formatMoney, formatPercent , PageHeader } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,13 +27,8 @@ export default async function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-ink-900">Reports</h1>
-        <p className="mt-0.5 text-sm text-ink-500">
-          Generated automatically. Where a number cannot be computed honestly, it says so rather than
-          showing zero.
-        </p>
-      </div>
+      <PageHeader title="Reports" subtitle={<>Generated automatically. Where a number cannot be computed honestly, it says so rather than
+          showing zero.</>} />
 
       {monthly.length === 0 ? (
         <Card>
@@ -51,7 +46,7 @@ export default async function ReportsPage() {
               <Stat label="Opportunities" value={report.totals.opportunities} />
             </div>
 
-            <div className="flex flex-wrap gap-x-8 gap-y-2 border-t border-ink-200 px-4 py-3 text-sm">
+            <div className="flex flex-wrap gap-x-8 gap-y-2 border-t border-hairline px-4 py-3 text-sm">
               <Metric label="Total cost" value={formatMoney(report.cost.totalCostCents)} />
               <Metric label="Cost per contact" value={formatMoney(report.cost.costPerContactCents)} />
               <Metric label="Cost per conversation" value={formatMoney(report.cost.costPerConversationCents)} />
@@ -75,7 +70,7 @@ export default async function ReportsPage() {
             </div>
 
             {report.weeks.length > 0 && (
-              <div className="border-t border-ink-200 p-4">
+              <div className="border-t border-hairline p-4">
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">
                   Weeks this month
                 </h3>
@@ -91,7 +86,7 @@ export default async function ReportsPage() {
                         <th className="py-1 text-right font-medium">Meetings</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-ink-200">
+                    <tbody className="divide-y divide-hairline">
                       {report.weeks.map((w) => (
                         <tr key={w.label}>
                           <td className="py-1.5 text-ink-800">{w.label}</td>
@@ -108,14 +103,14 @@ export default async function ReportsPage() {
               </div>
             )}
 
-            <div className="grid gap-4 border-t border-ink-200 p-4 sm:grid-cols-3">
+            <div className="grid gap-4 border-t border-hairline p-4 sm:grid-cols-3">
               <Ranked title="Strongest industries" rows={report.strongest.industries} />
               <Ranked title="Strongest locations" rows={report.strongest.locations} />
               <Ranked title="Strongest sources" rows={report.strongest.sources} />
             </div>
 
             {report.recommendations.length > 0 && (
-              <div className="border-t border-ink-200 p-4">
+              <div className="border-t border-hairline p-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-500">
                   Recommended changes
                 </h3>
@@ -134,7 +129,7 @@ export default async function ReportsPage() {
         {storedReports.length === 0 ? (
           <EmptyState title="No reports stored yet" body="They appear automatically as shifts and weeks complete." />
         ) : (
-          <ul className="divide-y divide-ink-200 text-sm">
+          <ul className="divide-y divide-hairline text-sm">
             {storedReports.map((r) => (
               <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2">
                 <Badge tone="neutral">{r.kind.replace(/_/g, ' ').toLowerCase()}</Badge>

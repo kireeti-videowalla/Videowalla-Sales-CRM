@@ -123,7 +123,7 @@ export function KanbanBoard({ columns, canMove }: { columns: KanbanColumn[]; can
                     setDraggingId(null);
                     setOverColumn(null);
                   }}
-                  className={`kanban-card rounded-xl border border-hairline bg-white p-3.5 shadow-card ${
+                  className={`kanban-card rounded-card border border-hairline bg-white p-3.5 shadow-card ${
                     draggingId === card.id ? 'dragging' : ''
                   } ${pending ? 'pointer-events-none opacity-70' : ''}`}
                 >

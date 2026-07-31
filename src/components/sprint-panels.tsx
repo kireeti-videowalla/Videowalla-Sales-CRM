@@ -107,7 +107,7 @@ export function ReviewExceptionsPanel({
         your configured thresholds. Approving one puts it in the salesperson&rsquo;s queue.
       </p>
 
-      <ul className="divide-y divide-ink-200 rounded-lg border border-ink-200">
+      <ul className="divide-y divide-hairline rounded-lg border border-hairline">
         {tickets.map((t) => (
           <li key={t.id} className="flex items-start gap-3 px-3 py-2">
             <input

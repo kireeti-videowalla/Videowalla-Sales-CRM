@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { ACTIVITY_LABELS, recentActivity } from '@/lib/activity/log';
 import { computeActiveSeconds } from '@/lib/shifts/service';
 import { DEFAULT_TIMEZONE, formatInTz, humanDuration, secondsToHours } from '@/lib/time';
-import { Alert, Badge, Card, EmptyState, Stat } from '@/components/ui';
+import { Alert, Badge, Card, EmptyState, Stat , PageHeader } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 // The page refreshes itself so the owner can leave it open during a shift.
@@ -40,12 +40,7 @@ export default async function LiveActivityPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-ink-900">Live Activity</h1>
-        <p className="mt-0.5 text-sm text-ink-500">
-          Built from real events inside this application — not screenshots or computer monitoring.
-        </p>
-      </div>
+      <PageHeader title="Live Activity" subtitle={<>Built from real events inside this application — not screenshots or computer monitoring.</>} />
 
       {openShifts.length === 0 ? (
         <Card>
@@ -94,7 +89,7 @@ export default async function LiveActivityPage() {
               </div>
 
               {lastAction && (
-                <div className="border-t border-ink-200 px-4 py-3 text-sm">
+                <div className="border-t border-hairline px-4 py-3 text-sm">
                   <span className="text-ink-500">Last action: </span>
                   <span className="text-ink-900">{ACTIVITY_LABELS[lastAction.kind]}</span>
                   {lastAction.ticket && (
@@ -107,7 +102,7 @@ export default async function LiveActivityPage() {
               )}
 
               {shiftActivity.length > 0 && (
-                <ul className="max-h-64 divide-y divide-ink-200 overflow-y-auto border-t border-ink-200 text-sm">
+                <ul className="max-h-64 divide-y divide-hairline overflow-y-auto border-t border-hairline text-sm">
                   {shiftActivity.map((a) => (
                     <li key={a.id} className="flex items-center gap-3 px-4 py-2">
                       <span className="w-40 shrink-0 text-xs text-ink-500">{ACTIVITY_LABELS[a.kind]}</span>
@@ -128,7 +123,7 @@ export default async function LiveActivityPage() {
         {recentAttempts.length === 0 ? (
           <EmptyState title="No contact attempts recorded in the last day" />
         ) : (
-          <ul className="divide-y divide-ink-200 text-sm">
+          <ul className="divide-y divide-hairline text-sm">
             {recentAttempts.map((a) => (
               <li key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2">
                 <Badge tone={a.isConversation ? 'good' : 'neutral'}>{a.outcome.label}</Badge>
@@ -147,7 +142,7 @@ export default async function LiveActivityPage() {
       </Card>
 
       <Card title="All recent activity">
-        <ul className="max-h-96 divide-y divide-ink-200 overflow-y-auto text-sm">
+        <ul className="max-h-96 divide-y divide-hairline overflow-y-auto text-sm">
           {activity.map((a) => (
             <li key={a.id} className="flex items-center gap-3 px-4 py-2">
               <span
