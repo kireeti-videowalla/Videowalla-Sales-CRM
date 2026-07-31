@@ -1,4 +1,6 @@
-import 'server-only';
+// Deliberately not marked `server-only`: this module contains no Next.js
+// request APIs and is reused by CLI scripts (bootstrap-owner) and the worker.
+// The request-bound half of auth lives in ./session.ts, which is server-only.
 import type { Prisma, UserRole } from '@prisma/client';
 import { prisma } from '../db';
 import { generateToken, hashPassword, hashToken, verifyPassword } from '../crypto';

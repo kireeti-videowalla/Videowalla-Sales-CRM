@@ -78,7 +78,19 @@ export async function moveTicketToStage(params: {
 
   const toStage = await prisma.pipelineStage.findUnique({ where: { key: params.toStageKey } });
   if (!toStage || !toStage.isActive) return { ok: false, error: 'Target stage not found or inactive.' };
-  if (ticket.stageId === toStage.id) return { ok: true, ticket, automationsRun: [] };
+
+  /**
+   * A ticket can legitimately re-enter the stage it is already in — the second
+   * unanswered call on a lead already sitting in "Contacted – No Answer" is the
+   * common case. Returning early here would skip `schedule_retry_follow_up` and
+   * the lead would drop out of the queue with nothing chasing it, which is
+   * exactly the silent follow-up loss the product must never allow.
+   *
+   * So automations still run; only the stage-change history entry is skipped,
+   * because nothing actually moved. The attempt itself is recorded separately
+   * by ContactAttempt.
+   */
+  const isSameStage = ticket.stageId === toStage.id;
 
   // A do-not-contact company can only ever move further into suppression.
   if (ticket.company.doNotContact && toStage.category !== 'SUPPRESSED') {
@@ -275,25 +287,27 @@ export async function moveTicketToStage(params: {
   }
 
   // --- Immutable history ---------------------------------------------------
-  await prisma.stageHistory.create({
-    data: {
-      ticketId: ticket.id,
-      fromStageId,
-      toStageId: toStage.id,
-      userId: params.userId,
-      sprintId: ticket.sprintId,
-      shiftId: (
-        await prisma.shift.findFirst({
-          where: { userId: params.userId, status: { in: ['ACTIVE', 'PAUSED'] } },
-          select: { id: true },
-        })
-      )?.id,
-      requiredNextAction: String(data.nextAction ?? data.expectedNextStep ?? '') || null,
-      followUpId: createdFollowUpId,
-      automated: params.automated ?? false,
-      metadata: { fields: data as Prisma.InputJsonValue, automationsRun },
-    },
-  });
+  if (!isSameStage) {
+    await prisma.stageHistory.create({
+      data: {
+        ticketId: ticket.id,
+        fromStageId,
+        toStageId: toStage.id,
+        userId: params.userId,
+        sprintId: ticket.sprintId,
+        shiftId: (
+          await prisma.shift.findFirst({
+            where: { userId: params.userId, status: { in: ['ACTIVE', 'PAUSED'] } },
+            select: { id: true },
+          })
+        )?.id,
+        requiredNextAction: String(data.nextAction ?? data.expectedNextStep ?? '') || null,
+        followUpId: createdFollowUpId,
+        automated: params.automated ?? false,
+        metadata: { fields: data as Prisma.InputJsonValue, automationsRun },
+      },
+    });
+  }
 
   if (params.note?.trim()) {
     await prisma.note.create({
@@ -307,13 +321,15 @@ export async function moveTicketToStage(params: {
     });
   }
 
-  await logActivity({
-    userId: params.userId,
-    kind: 'STAGE_CHANGED',
-    summary: `${ticket.company.name}: ${ticket.stage.name} → ${toStage.name}`,
-    ticketId: ticket.id,
-    metadata: { from: ticket.stage.key, to: toStage.key, automationsRun },
-  });
+  if (!isSameStage) {
+    await logActivity({
+      userId: params.userId,
+      kind: 'STAGE_CHANGED',
+      summary: `${ticket.company.name}: ${ticket.stage.name} → ${toStage.name}`,
+      ticketId: ticket.id,
+      metadata: { from: ticket.stage.key, to: toStage.key, automationsRun },
+    });
+  }
 
   const updated = await prisma.leadTicket.findUniqueOrThrow({ where: { id: ticket.id } });
   return { ok: true, ticket: updated, automationsRun };

@@ -18,7 +18,7 @@ import { config as loadEnv } from 'dotenv';
 loadEnv({ path: '.env', quiet: true });
 
 import { prisma } from '../src/lib/db';
-import { hashPassword, stableKeyPlaceholder } from './acceptance-helpers';
+import { hashPassword } from '../src/lib/crypto';
 import { parseEmail, type RawEmail } from '../src/lib/ingestion/email-parser';
 import { recordSource } from '../src/lib/ingestion/ingest';
 import { processSourceRecord } from '../src/lib/pipeline/process';
@@ -717,4 +717,3 @@ main()
     await prisma.$disconnect();
   });
 
-export { stableKeyPlaceholder };
