@@ -10,7 +10,7 @@ import { markLeadOpenedAction } from '@/app/actions/tickets';
 import { formatPhone } from '@/lib/normalize';
 import { addDays, formatDateInTz, formatInTz, DEFAULT_TIMEZONE } from '@/lib/time';
 import { bandLabel } from '@/lib/pipeline/scoring';
-import { Alert, Badge, Card, EstimatedValue, formatMoney } from '@/components/ui';
+import { Alert, Badge, Card, EstimatedValue, Progress, formatMoney } from '@/components/ui';
 import { OutcomeForm } from '@/components/outcome-form';
 import { AssignLead } from '@/components/assign-lead';
 import {
@@ -442,25 +442,64 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             </dl>
           </Card>
 
-          <Card title={`Score: ${ticket.score}/100`} subtitle={score?.explanation ?? undefined}>
-            <ul className="divide-y divide-hairline text-sm">
-              {breakdown.map((f) => (
-                <li key={f.key} className="px-5 py-2">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-ink-700">{f.label}</span>
-                    <span className="tnum shrink-0 text-xs text-ink-500">
-                      {f.awarded} / {f.weight}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-ink-500">{f.reason}</p>
-                </li>
-              ))}
-            </ul>
-            {score && (
-              <p className="border-t border-hairline px-5 py-2 text-xs text-ink-500">
-                Data confidence {Math.round(score.dataConfidence * 100)}% — the remainder rests on estimates.
-              </p>
-            )}
+          {/* The score is her reassurance, not her homework. The summary and the
+              three strongest reasons show by default; the full twelve-factor
+              working sits behind a disclosure so the ticket stays readable. */}
+          <Card title={`Score ${ticket.score}/100`} subtitle={bandLabel(ticket.band)}>
+            <div className="px-6 py-4">
+              {score?.explanation && (
+                <p className="text-[13px] leading-relaxed text-ink-700">{score.explanation}</p>
+              )}
+
+              {breakdown.length > 0 && (
+                <>
+                  <ul className="mt-4 space-y-3">
+                    {[...breakdown]
+                      .sort((a, b) => b.awarded - a.awarded)
+                      .slice(0, 3)
+                      .map((f) => (
+                        <li key={f.key}>
+                          <div className="mb-1 flex items-baseline justify-between gap-2">
+                            <span className="text-[13px] text-ink-700">{f.label}</span>
+                            <span className="tnum shrink-0 text-[12px] text-ink-500">
+                              {f.awarded}
+                              <span className="text-ink-400"> / {f.weight}</span>
+                            </span>
+                          </div>
+                          <Progress value={f.awarded} max={f.weight} showNumbers={false} size="sm" />
+                        </li>
+                      ))}
+                  </ul>
+
+                  <details className="group mt-4">
+                    <summary className="cursor-pointer list-none text-[13px] font-medium text-brand-600 hover:underline">
+                      <span className="group-open:hidden">Show all {breakdown.length} factors</span>
+                      <span className="hidden group-open:inline">Hide the full breakdown</span>
+                    </summary>
+                    <ul className="mt-3 space-y-3 border-t border-hairline pt-3">
+                      {breakdown.map((f) => (
+                        <li key={f.key}>
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="text-[13px] text-ink-700">{f.label}</span>
+                            <span className="tnum shrink-0 text-[12px] text-ink-500">
+                              {f.awarded}
+                              <span className="text-ink-400"> / {f.weight}</span>
+                            </span>
+                          </div>
+                          <p className="mt-0.5 text-[12px] leading-snug text-ink-500">{f.reason}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                </>
+              )}
+
+              {score && (
+                <p className="mt-4 border-t border-hairline pt-3 text-[12px] text-ink-500">
+                  Data confidence {Math.round(score.dataConfidence * 100)}% — the rest is estimated.
+                </p>
+              )}
+            </div>
           </Card>
 
           {canAct && !company.doNotContact && (

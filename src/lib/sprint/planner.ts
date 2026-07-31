@@ -4,6 +4,7 @@ import { createLogger } from '../logger';
 import { ingestAllSources } from '../ingestion/ingest';
 import { processPendingRecords } from '../pipeline/process';
 import { notify } from '../notifications/service';
+import { enqueue } from '../jobs/queue';
 import { getSetting } from '../settings/service';
 import { autoEndStaleShifts } from '../shifts/service';
 import { sweepFollowUps } from '../followups/service';
@@ -123,6 +124,15 @@ export async function runSundayPlanning(options: {
         where: { id: sprint.id },
         data: { status: 'CLOSED', closedAt: now },
       });
+      // Generate the week's report now that its scorecard is frozen. Without
+      // this the weekly report is never written and the owner's "report ready"
+      // notification never fires — the handler existed but nothing called it.
+      await enqueue(
+        'reports.weekly',
+        { sprintId: sprint.id },
+        { idempotencyKey: `weekly-report:${sprint.id}`, priority: 60 },
+      );
+
       report.closedSprints.push({
         sprintId: sprint.id,
         label: sprint.label,
